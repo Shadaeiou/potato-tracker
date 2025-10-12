@@ -20,7 +20,159 @@
     const Utensils = () => <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M3 2v7c0 1.1.9 2 2 2h4a2 2 0 0 0 2-2V2M7 2v20M21 15V2a5 5 0 0 0-5 5v6c0 1.1.9 2 2 2h3v7"/></svg>;
     const TrendingUp = () => <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><polyline points="22 7 13.5 15.5 8.5 10.5 2 17"/><polyline points="16 7 22 7 22 13"/></svg>;
     const Calendar = () => <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><rect width="18" height="18" x="3" y="4" rx="2"/><line x1="16" x2="16" y1="2" y2="6"/><line x1="8" x2="8" y1="2" y2="6"/><line x1="3" x2="21" y1="10" y2="10"/></svg>;
-
+    const WeightView = ({ sortedWeights, latestWeight, oldestWeight, weightChange, chartData, pathD, getX, getY, chartWidth, chartHeight, padding, weights, setWeights, settings, setSettings, calcBMR, setView }) => {
+      const [editingWeight, setEditingWeight] = useState(null);
+      const [editWeightVal, setEditWeightVal] = useState('');
+      
+      const startEditWeight = (date, weight) => {
+        setEditingWeight(date);
+        setEditWeightVal(weight.toString());
+      };
+      
+      const saveWeightEdit = (date) => {
+        if (editWeightVal && settings) {
+          const newWeights = {...weights};
+          newWeights[date] = parseFloat(editWeightVal);
+          setWeights(newWeights);
+          localStorage.setItem('pw', JSON.stringify(newWeights));
+          
+          // If editing the most recent weight, update settings
+          const mostRecentDate = sortedWeights[0][0];
+          if (date === mostRecentDate) {
+            const newBmr = calcBMR(editWeightVal, settings.heightFt, settings.heightIn, settings.age, settings.gender, settings.activity);
+            const deficit = settings.bmr - settings.goal;
+            const updatedSettings = {
+              ...settings,
+              currentWeight: parseFloat(editWeightVal),
+              bmr: newBmr,
+              goal: newBmr - deficit
+            };
+            setSettings(updatedSettings);
+            localStorage.setItem('ps', JSON.stringify(updatedSettings));
+          }
+          
+          setEditingWeight(null);
+        }
+      };
+      
+      const deleteWeight = (date) => {
+        const newWeights = {...weights};
+        delete newWeights[date];
+        setWeights(newWeights);
+        localStorage.setItem('pw', JSON.stringify(newWeights));
+        setEditingWeight(null);
+      };
+      
+      return (
+        <div className="min-h-screen bg-gradient-to-br from-amber-50 to-orange-100 p-6">
+          <div className="max-w-4xl mx-auto bg-white rounded-2xl shadow-xl p-8">
+            <div className="flex justify-between items-center mb-6">
+              <h1 className="text-3xl font-bold text-gray-800">⚖️ Weight Progress</h1>
+              <button onClick={() => setView('main')} className="px-4 py-2 bg-gray-100 hover:bg-gray-200 rounded-lg">Back</button>
+            </div>
+            
+            {sortedWeights.length > 0 ? (
+              <>
+                <div className="grid grid-cols-3 gap-4 mb-6">
+                  <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                    <p className="text-sm text-gray-600 mb-1">Current Weight</p>
+                    <p className="text-3xl font-bold text-blue-700">{latestWeight} lbs</p>
+                  </div>
+                  <div className="bg-purple-50 border border-purple-200 rounded-lg p-4">
+                    <p className="text-sm text-gray-600 mb-1">Starting Weight</p>
+                    <p className="text-3xl font-bold text-purple-700">{oldestWeight} lbs</p>
+                  </div>
+                  {weightChange && (
+                    <div className={`border rounded-lg p-4 ${parseFloat(weightChange) <= 0 ? 'bg-green-50 border-green-200' : 'bg-orange-50 border-orange-200'}`}>
+                      <p className="text-sm text-gray-600 mb-1">Total Change</p>
+                      <p className={`text-3xl font-bold ${parseFloat(weightChange) <= 0 ? 'text-green-700' : 'text-orange-700'}`}>
+                        {parseFloat(weightChange) > 0 ? '+' : ''}{weightChange} lbs
+                      </p>
+                    </div>
+                  )}
+                </div>
+                
+                {/* Weight Chart */}
+                {chartData.length > 1 && (
+                  <div className="bg-gradient-to-br from-blue-50 to-purple-50 rounded-lg p-6 mb-6">
+                    <h3 className="text-lg font-semibold mb-4">Weight Trend</h3>
+                    <div className="flex justify-center">
+                      <svg viewBox={`0 0 ${chartWidth} ${chartHeight}`} className="w-full max-w-2xl">
+                        {/* Grid lines */}
+                        {[0, 1, 2, 3, 4].map(i => {
+                          const y = padding + (i / 4) * (chartHeight - 2 * padding);
+                          const maxW = chartData.length > 0 ? Math.max(...chartData.map(([, w]) => w)) : 0;
+                          const minW = chartData.length > 0 ? Math.min(...chartData.map(([, w]) => w)) : 0;
+                          const range = maxW - minW || 10;
+                          const weight = (maxW + range * 0.1) - (i / 4) * (range * 1.2);
+                          return (
+                            <g key={i}>
+                              <line x1={padding} y1={y} x2={chartWidth - padding} y2={y} stroke="#e5e7eb" strokeWidth="1" />
+                              <text x={padding - 5} y={y + 5} textAnchor="end" fontSize="12" fill="#6b7280">{weight.toFixed(1)}</text>
+                            </g>
+                          );
+                        })}
+                        
+                        {/* Line */}
+                        <path d={pathD} fill="none" stroke="#3b82f6" strokeWidth="3" />
+                        
+                        {/* Points */}
+                        {chartData.map(([date, weight], i) => (
+                          <g key={date}>
+                            <circle cx={getX(i)} cy={getY(weight)} r="5" fill="#3b82f6" stroke="white" strokeWidth="2" />
+                            <text x={getX(i)} y={chartHeight - 10} textAnchor="middle" fontSize="10" fill="#6b7280">
+                              {new Date(date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+                            </text>
+                          </g>
+                        ))}
+                      </svg>
+                    </div>
+                  </div>
+                )}
+                
+                <div className="space-y-3">
+                  <h3 className="text-lg font-semibold">Weight History</h3>
+                  {sortedWeights.map(([date, weight]) => (
+                    <div key={date} className="bg-gray-50 p-3 rounded-lg">
+                      {editingWeight === date ? (
+                        <div className="flex gap-2 items-center">
+                          <span className="font-medium">{new Date(date).toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })}</span>
+                          <input 
+                            type="number" 
+                            step="0.1" 
+                            value={editWeightVal} 
+                            onChange={(e) => setEditWeightVal(e.target.value)} 
+                            className="w-24 px-2 py-1 border rounded" 
+                          />
+                          <span className="text-sm">lbs</span>
+                          <button onClick={() => saveWeightEdit(date)} className="text-green-600 font-medium text-sm">Save</button>
+                          <button onClick={() => setEditingWeight(null)} className="text-gray-600 font-medium text-sm">Cancel</button>
+                          <button onClick={() => deleteWeight(date)} className="text-red-600 font-medium text-sm ml-auto">Delete</button>
+                        </div>
+                      ) : (
+                        <div className="flex justify-between items-center">
+                          <span className="font-medium">{new Date(date).toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })}</span>
+                          <div className="flex items-center gap-3">
+                            <span className="text-lg font-bold text-gray-800">{weight} lbs</span>
+                            <div className="flex gap-2">
+                              <button onClick={() => startEditWeight(date, weight)} className="text-blue-600 text-sm font-medium">Edit</button>
+                              <button onClick={() => deleteWeight(date)} className="text-red-600 text-sm font-medium">Delete</button>
+                            </div>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              </>
+            ) : (
+              <p className="text-center py-12 text-gray-500">No weight entries yet. Start tracking on Mondays!</p>
+            )}
+          </div>
+        </div>
+      );
+    };
+    
     function PotatoTracker() {
       const [view, setView] = useState('main');
       const [settings, setSettings] = useState(null);
@@ -501,51 +653,8 @@
         const oldestWeight = sortedWeights.length > 0 ? sortedWeights[sortedWeights.length - 1][1] : null;
         const weightChange = latestWeight && oldestWeight ? (latestWeight - oldestWeight).toFixed(1) : null;
         
-        const [editingWeight, setEditingWeight] = useState(null);
-        const [editWeightVal, setEditWeightVal] = useState('');
-        
-        const startEditWeight = (date, weight) => {
-          setEditingWeight(date);
-          setEditWeightVal(weight.toString());
-        };
-        
-        const saveWeightEdit = (date) => {
-          if (editWeightVal && settings) {
-            const newWeights = {...weights};
-            const oldWeight = newWeights[date];
-            newWeights[date] = parseFloat(editWeightVal);
-            setWeights(newWeights);
-            localStorage.setItem('pw', JSON.stringify(newWeights));
-            
-            // If editing the most recent weight, update settings
-            const mostRecentDate = sortedWeights[0][0];
-            if (date === mostRecentDate) {
-              const newBmr = calcBMR(editWeightVal, settings.heightFt, settings.heightIn, settings.age, settings.gender, settings.activity);
-              const deficit = settings.bmr - settings.goal;
-              const updatedSettings = {
-                ...settings,
-                currentWeight: parseFloat(editWeightVal),
-                bmr: newBmr,
-                goal: newBmr - deficit
-              };
-              setSettings(updatedSettings);
-              localStorage.setItem('ps', JSON.stringify(updatedSettings));
-            }
-            
-            setEditingWeight(null);
-          }
-        };
-        
-        const deleteWeight = (date) => {
-          const newWeights = {...weights};
-          delete newWeights[date];
-          setWeights(newWeights);
-          localStorage.setItem('pw', JSON.stringify(newWeights));
-          setEditingWeight(null);
-        };
-        
         // Prepare data for line chart
-        const chartData = sortedWeights.reverse(); // Oldest to newest for chart
+        const chartData = sortedWeights.slice().reverse(); // Oldest to newest for chart
         const minWeight = chartData.length > 0 ? Math.min(...chartData.map(([, w]) => w)) : 0;
         const maxWeight = chartData.length > 0 ? Math.max(...chartData.map(([, w]) => w)) : 0;
         const weightRange = maxWeight - minWeight || 10;
@@ -561,109 +670,25 @@
         ).join(' ');
         
         return (
-          <div className="min-h-screen bg-gradient-to-br from-amber-50 to-orange-100 p-6">
-            <div className="max-w-4xl mx-auto bg-white rounded-2xl shadow-xl p-8">
-              <div className="flex justify-between items-center mb-6">
-                <h1 className="text-3xl font-bold text-gray-800">⚖️ Weight Progress</h1>
-                <button onClick={() => setView('main')} className="px-4 py-2 bg-gray-100 hover:bg-gray-200 rounded-lg">Back</button>
-              </div>
-              
-              {sortedWeights.length > 0 ? (
-                <>
-                  <div className="grid grid-cols-3 gap-4 mb-6">
-                    <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-                      <p className="text-sm text-gray-600 mb-1">Current Weight</p>
-                      <p className="text-3xl font-bold text-blue-700">{latestWeight} lbs</p>
-                    </div>
-                    <div className="bg-purple-50 border border-purple-200 rounded-lg p-4">
-                      <p className="text-sm text-gray-600 mb-1">Starting Weight</p>
-                      <p className="text-3xl font-bold text-purple-700">{oldestWeight} lbs</p>
-                    </div>
-                    {weightChange && (
-                      <div className={`border rounded-lg p-4 ${parseFloat(weightChange) <= 0 ? 'bg-green-50 border-green-200' : 'bg-orange-50 border-orange-200'}`}>
-                        <p className="text-sm text-gray-600 mb-1">Total Change</p>
-                        <p className={`text-3xl font-bold ${parseFloat(weightChange) <= 0 ? 'text-green-700' : 'text-orange-700'}`}>
-                          {parseFloat(weightChange) > 0 ? '+' : ''}{weightChange} lbs
-                        </p>
-                      </div>
-                    )}
-                  </div>
-                  
-                  {/* Weight Chart */}
-                  {chartData.length > 1 && (
-                    <div className="bg-gradient-to-br from-blue-50 to-purple-50 rounded-lg p-6 mb-6">
-                      <h3 className="text-lg font-semibold mb-4">Weight Trend</h3>
-                      <div className="flex justify-center">
-                        <svg viewBox={`0 0 ${chartWidth} ${chartHeight}`} className="w-full max-w-2xl">
-                          {/* Grid lines */}
-                          {[0, 1, 2, 3, 4].map(i => {
-                            const y = padding + (i / 4) * (chartHeight - 2 * padding);
-                            const weight = (maxWeight + weightRange * 0.1) - (i / 4) * (weightRange * 1.2);
-                            return (
-                              <g key={i}>
-                                <line x1={padding} y1={y} x2={chartWidth - padding} y2={y} stroke="#e5e7eb" strokeWidth="1" />
-                                <text x={padding - 5} y={y + 5} textAnchor="end" fontSize="12" fill="#6b7280">{weight.toFixed(1)}</text>
-                              </g>
-                            );
-                          })}
-                          
-                          {/* Line */}
-                          <path d={pathD} fill="none" stroke="#3b82f6" strokeWidth="3" />
-                          
-                          {/* Points */}
-                          {chartData.map(([date, weight], i) => (
-                            <g key={date}>
-                              <circle cx={getX(i)} cy={getY(weight)} r="5" fill="#3b82f6" stroke="white" strokeWidth="2" />
-                              <text x={getX(i)} y={chartHeight - 10} textAnchor="middle" fontSize="10" fill="#6b7280">
-                                {new Date(date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
-                              </text>
-                            </g>
-                          ))}
-                        </svg>
-                      </div>
-                    </div>
-                  )}
-                  
-                  <div className="space-y-3">
-                    <h3 className="text-lg font-semibold">Weight History</h3>
-                    {sortedWeights.reverse().map(([date, weight]) => (
-                      <div key={date} className="bg-gray-50 p-3 rounded-lg">
-                        {editingWeight === date ? (
-                          <div className="flex gap-2 items-center">
-                            <span className="font-medium">{new Date(date).toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })}</span>
-                            <input 
-                              type="number" 
-                              step="0.1" 
-                              value={editWeightVal} 
-                              onChange={(e) => setEditWeightVal(e.target.value)} 
-                              className="w-24 px-2 py-1 border rounded" 
-                            />
-                            <span className="text-sm">lbs</span>
-                            <button onClick={() => saveWeightEdit(date)} className="text-green-600 font-medium text-sm">Save</button>
-                            <button onClick={() => setEditingWeight(null)} className="text-gray-600 font-medium text-sm">Cancel</button>
-                            <button onClick={() => deleteWeight(date)} className="text-red-600 font-medium text-sm ml-auto">Delete</button>
-                          </div>
-                        ) : (
-                          <div className="flex justify-between items-center">
-                            <span className="font-medium">{new Date(date).toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })}</span>
-                            <div className="flex items-center gap-3">
-                              <span className="text-lg font-bold text-gray-800">{weight} lbs</span>
-                              <div className="flex gap-2">
-                                <button onClick={() => startEditWeight(date, weight)} className="text-blue-600 text-sm font-medium">Edit</button>
-                                <button onClick={() => deleteWeight(date)} className="text-red-600 text-sm font-medium">Delete</button>
-                              </div>
-                            </div>
-                          </div>
-                        )}
-                      </div>
-                    ))}
-                  </div>
-                </>
-              ) : (
-                <p className="text-center py-12 text-gray-500">No weight entries yet. Start tracking on Mondays!</p>
-              )}
-            </div>
-          </div>
+          <WeightView 
+            sortedWeights={sortedWeights}
+            latestWeight={latestWeight}
+            oldestWeight={oldestWeight}
+            weightChange={weightChange}
+            chartData={chartData}
+            pathD={pathD}
+            getX={getX}
+            getY={getY}
+            chartWidth={chartWidth}
+            chartHeight={chartHeight}
+            padding={padding}
+            weights={weights}
+            setWeights={setWeights}
+            settings={settings}
+            setSettings={setSettings}
+            calcBMR={calcBMR}
+            setView={setView}
+          />
         );
       }
 
