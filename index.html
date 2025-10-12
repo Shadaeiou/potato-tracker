@@ -452,6 +452,32 @@
         const oldestWeight = sortedWeights.length > 0 ? sortedWeights[sortedWeights.length - 1][1] : null;
         const weightChange = latestWeight && oldestWeight ? (latestWeight - oldestWeight).toFixed(1) : null;
         
+        const [editingWeight, setEditingWeight] = useState(null);
+        const [editWeightVal, setEditWeightVal] = useState('');
+        
+        const startEditWeight = (date, weight) => {
+          setEditingWeight(date);
+          setEditWeightVal(weight.toString());
+        };
+        
+        const saveWeightEdit = (date) => {
+          if (editWeightVal) {
+            const newWeights = {...weights};
+            newWeights[date] = parseFloat(editWeightVal);
+            setWeights(newWeights);
+            localStorage.setItem('pw', JSON.stringify(newWeights));
+            setEditingWeight(null);
+          }
+        };
+        
+        const deleteWeight = (date) => {
+          const newWeights = {...weights};
+          delete newWeights[date];
+          setWeights(newWeights);
+          localStorage.setItem('pw', JSON.stringify(newWeights));
+          setEditingWeight(null);
+        };
+        
         return (
           <div className="min-h-screen bg-gradient-to-br from-amber-50 to-orange-100 p-6">
             <div className="max-w-4xl mx-auto bg-white rounded-2xl shadow-xl p-8">
@@ -483,9 +509,34 @@
                   <div className="space-y-3">
                     <h3 className="text-lg font-semibold">Weight History</h3>
                     {sortedWeights.map(([date, weight]) => (
-                      <div key={date} className="flex justify-between items-center bg-gray-50 p-3 rounded-lg">
-                        <span className="font-medium">{new Date(date).toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })}</span>
-                        <span className="text-lg font-bold text-gray-800">{weight} lbs</span>
+                      <div key={date} className="bg-gray-50 p-3 rounded-lg">
+                        {editingWeight === date ? (
+                          <div className="flex gap-2 items-center">
+                            <span className="font-medium">{new Date(date).toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })}</span>
+                            <input 
+                              type="number" 
+                              step="0.1" 
+                              value={editWeightVal} 
+                              onChange={(e) => setEditWeightVal(e.target.value)} 
+                              className="w-24 px-2 py-1 border rounded" 
+                            />
+                            <span className="text-sm">lbs</span>
+                            <button onClick={() => saveWeightEdit(date)} className="text-green-600 font-medium text-sm">Save</button>
+                            <button onClick={() => setEditingWeight(null)} className="text-gray-600 font-medium text-sm">Cancel</button>
+                            <button onClick={() => deleteWeight(date)} className="text-red-600 font-medium text-sm ml-auto">Delete</button>
+                          </div>
+                        ) : (
+                          <div className="flex justify-between items-center">
+                            <span className="font-medium">{new Date(date).toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })}</span>
+                            <div className="flex items-center gap-3">
+                              <span className="text-lg font-bold text-gray-800">{weight} lbs</span>
+                              <div className="flex gap-2">
+                                <button onClick={() => startEditWeight(date, weight)} className="text-blue-600 text-sm font-medium">Edit</button>
+                                <button onClick={() => deleteWeight(date)} className="text-red-600 text-sm font-medium">Delete</button>
+                              </div>
+                            </div>
+                          </div>
+                        )}
                       </div>
                     ))}
                   </div>
