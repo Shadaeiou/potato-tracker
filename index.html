@@ -279,9 +279,7 @@
           </div>
         );
       }
-**PART 2 - Copy this immediately after Part 1:**
-
-```javascript
+      
       if (view === 'history') {
         const sorted = Object.entries(history).sort(([a], [b]) => b.localeCompare(a));
         return (
@@ -379,7 +377,7 @@
             <div className="bg-white rounded-2xl shadow-xl p-8">
               <h2 className="text-2xl font-bold mb-4 flex items-center gap-2"><Dumbbell />Log Exercise</h2>
               <div className="mb-4"><p className="text-sm text-gray-600 mb-2">Quick Add:</p><div className="flex gap-2"><button onClick={() => quickEx(100)} className="px-4 py-2 bg-blue-100 hover:bg-blue-200 rounded-lg text-blue-800 font-medium">100</button><button onClick={() => quickEx(200)} className="px-4 py-2 bg-blue-100 hover:bg-blue-200 rounded-lg text-blue-800 font-medium">200</button><button onClick={() => quickEx(300)} className="px-4 py-2 bg-blue-100 hover:bg-blue-200 rounded-lg text-blue-800 font-medium">300</button></div></div>
-              <div className="grid grid-cols-4 gap-3 mb-6"><div><label className="block text-sm font-medium mb-1">Hour</label><input type="number" min="0" max="23alue={newExercise.hour} onChange={(e) => setNewExercise({...newExercise, hour: e.target.value})} placeholder="8" className="w-full px-3 py-2 border rounded-lg" /></div><div><label className="block text-sm font-medium mb-1">Calories</label><input type="number" min="0" value={newExercise.cal} onChange={(e) => setNewExercise({...newExercise, cal: e.target.value})} placeholder="300" className="w-full px-3 py-2 border rounded-lg" /></div><div><label className="block text-sm font-medium mb-1">Activity</label><input type="text" value={newExercise.note} onChange={(e) => setNewExercise({...newExercise, note: e.target.value})} placeholder="run" className="w-full px-3 py-2 border rounded-lg" /></div><div className="flex items-end"><button onClick={addExercise} className="w-full px-6 py-2 bg-blue-500 hover:bg-blue-600 text-white font-semibold rounded-lg">Add</button></div></div>
+              <div className="grid grid-cols-4 gap-3 mb-6"><div><label className="block text-sm font-medium mb-1">Hour</label><input type="number" min="0" max="23" value={newExercise.hour} onChange={(e) => setNewExercise({...newExercise, hour: e.target.value})} placeholder="8" className="w-full px-3 py-2 border rounded-lg" /></div><div><label className="block text-sm font-medium mb-1">Calories</label><input type="number" min="0" value={newExercise.cal} onChange={(e) => setNewExercise({...newExercise, cal: e.target.value})} placeholder="300" className="w-full px-3 py-2 border rounded-lg" /></div><div><label className="block text-sm font-medium mb-1">Activity</label><input type="text" value={newExercise.note} onChange={(e) => setNewExercise({...newExercise, note: e.target.value})} placeholder="run" className="w-full px-3 py-2 border rounded-lg" /></div><div className="flex items-end"><button onClick={addExercise} className="w-full px-6 py-2 bg-blue-500 hover:bg-blue-600 text-white font-semibold rounded-lg">Add</button></div></div>
               <div className="space-y-2"><h3 className="text-lg font-semibold mb-3">Today's Exercise</h3>{!exercises.length ? <p className="text-gray-500 text-center py-8">No exercise logged yet</p> : exercises.map((ex, i) => <div key={i} className="bg-blue-50 p-3 rounded-lg"><div className="flex justify-between items-center"><div><span className="font-semibold">{ex.hour}:00</span><span className="mx-2 text-gray-400">•</span><span className="text-green-600 font-bold">+{ex.cal} cal</span>{ex.note && <span className="ml-2 text-gray-500 text-sm">({ex.note})</span>}</div><button onClick={() => delEx(i)} className="text-red-600 text-sm font-medium">Delete</button></div></div>)}</div>
             </div>
           </div>
@@ -392,3 +390,4 @@
   </script>
 </body>
 </html>
+    
