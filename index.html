@@ -95,6 +95,20 @@
       useEffect(() => { localStorage.setItem('pf', JSON.stringify(feeds)); }, [feeds]);
       useEffect(() => { localStorage.setItem('pex', JSON.stringify(exercises)); }, [exercises]);
 
+      useEffect(() => {
+        if (view === 'setup' && settings && !inputs.weight) {
+          const deficit = settings.bmr - settings.goal;
+          const deficitPct = ((deficit / settings.bmr) * 100).toFixed(1);
+          setInputs(prev => ({
+            ...prev,
+            startHr: settings.start.toString(),
+            endHr: settings.end.toString(),
+            defPct: deficitPct,
+            defFlat: deficit.toString()
+          }));
+        }
+      }, [view, settings]);
+
       const calcBMR = () => {
         const kg = parseFloat(inputs.weight) * 0.453592;
         const cm = ((parseFloat(inputs.heightFt) * 12) + parseFloat(inputs.heightIn || 0)) * 2.54;
@@ -122,25 +136,6 @@
         setSettings(ns);
         localStorage.setItem('ps', JSON.stringify(ns));
         setView('main');
-      };
-
-      const loadSettings = () => {
-        if (settings) {
-          const totalCal = settings.bmr;
-          const deficit = settings.bmr - settings.goal;
-          const deficitPct = ((deficit / settings.bmr) * 100).toFixed(1);
-          
-          const heightInInches = Math.round((settings.bmr - 5 * parseFloat(inputs.age || 25) + (inputs.gender === 'male' ? -5 : 161)) / 6.25 * 2.54);
-          const weightKg = (settings.bmr - 6.25 * heightInInches - 5 * parseFloat(inputs.age || 25) + (inputs.gender === 'male' ? -5 : 161)) / 10;
-          
-          setInputs({
-            ...inputs,
-            startHr: settings.start.toString(),
-            endHr: settings.end.toString(),
-            defPct: deficitPct,
-            defFlat: deficit.toString()
-          });
-        }
       };
 
       const getBudget = () => {
@@ -390,9 +385,6 @@
       }
 
       if (view === 'setup' || !settings) {
-        if (settings && (!inputs.weight || !inputs.heightFt)) {
-          loadSettings();
-        }
         const canCalc = inputs.weight && inputs.heightFt && inputs.age;
         const bmr = canCalc ? calcBMR() : null;
         return (
