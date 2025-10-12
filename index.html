@@ -20,7 +20,6 @@
     const Utensils = () => <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M3 2v7c0 1.1.9 2 2 2h4a2 2 0 0 0 2-2V2M7 2v20M21 15V2a5 5 0 0 0-5 5v6c0 1.1.9 2 2 2h3v7"/></svg>;
     const TrendingUp = () => <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><polyline points="22 7 13.5 15.5 8.5 10.5 2 17"/><polyline points="16 7 22 7 22 13"/></svg>;
     const Calendar = () => <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><rect width="18" height="18" x="3" y="4" rx="2"/><line x1="16" x2="16" y1="2" y2="6"/><line x1="8" x2="8" y1="2" y2="6"/><line x1="3" x2="21" y1="10" y2="10"/></svg>;
-    const Dumbbell = () => <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M6.5 6.5v11m11-11v11M3 9.5v5m18-5v5m-1-7v9m-16-9v9m3-11h12"/></svg>;
 
     function PotatoTracker() {
       const [view, setView] = useState('main');
@@ -31,6 +30,8 @@
       const [weights, setWeights] = useState({});
       const [showWeightPrompt, setShowWeightPrompt] = useState(false);
       const [weightInput, setWeightInput] = useState('');
+      const [editingHistory, setEditingHistory] = useState(null);
+      const [historyEditVals, setHistoryEditVals] = useState({ tot: '', exTotal: '' });
       const [inputs, setInputs] = useState({
         weight: '', heightFt: '', heightIn: '', age: '', gender: 'male', activity: '1.2',
         defPct: '18', defFlat: '', startHr: '4', endHr: '22'
@@ -123,6 +124,25 @@
         setView('main');
       };
 
+      const loadSettings = () => {
+        if (settings) {
+          const totalCal = settings.bmr;
+          const deficit = settings.bmr - settings.goal;
+          const deficitPct = ((deficit / settings.bmr) * 100).toFixed(1);
+          
+          const heightInInches = Math.round((settings.bmr - 5 * parseFloat(inputs.age || 25) + (inputs.gender === 'male' ? -5 : 161)) / 6.25 * 2.54);
+          const weightKg = (settings.bmr - 6.25 * heightInInches - 5 * parseFloat(inputs.age || 25) + (inputs.gender === 'male' ? -5 : 161)) / 10;
+          
+          setInputs({
+            ...inputs,
+            startHr: settings.start.toString(),
+            endHr: settings.end.toString(),
+            defPct: deficitPct,
+            defFlat: deficit.toString()
+          });
+        }
+      };
+
       const getBudget = () => {
         if (!settings) return null;
         const hr = new Date().getHours();
@@ -142,15 +162,17 @@
       };
 
       const add = () => {
-        if (newFeed.hour && newFeed.cal) {
-          setFeeds([...feeds, { hour: parseInt(newFeed.hour), cal: parseInt(newFeed.cal), note: newFeed.note }]);
+        const hour = newFeed.hour ? parseInt(newFeed.hour) : new Date().getHours();
+        if (newFeed.cal) {
+          setFeeds([...feeds, { hour, cal: parseInt(newFeed.cal), note: newFeed.note }]);
           setNewFeed({ hour: '', cal: '', note: '' });
         }
       };
 
       const addExercise = () => {
-        if (newExercise.hour && newExercise.cal) {
-          setExercises([...exercises, { hour: parseInt(newExercise.hour), cal: parseInt(newExercise.cal), note: newExercise.note }]);
+        const hour = newExercise.hour ? parseInt(newExercise.hour) : new Date().getHours();
+        if (newExercise.cal) {
+          setExercises([...exercises, { hour, cal: parseInt(newExercise.cal), note: newExercise.note }]);
           setNewExercise({ hour: '', cal: '', note: '' });
         }
       };
@@ -164,6 +186,29 @@
           setShowWeightPrompt(false);
           setWeightInput('');
         }
+      };
+
+      const deleteHistoryEntry = (date) => {
+        const newHistory = {...history};
+        delete newHistory[date];
+        setHistory(newHistory);
+        localStorage.setItem('ph', JSON.stringify(newHistory));
+        setEditingHistory(null);
+      };
+
+      const saveHistoryEdit = (date) => {
+        const tot = parseInt(historyEditVals.tot);
+        const exTotal = parseInt(historyEditVals.exTotal);
+        const newHistory = {...history};
+        newHistory[date] = {
+          ...newHistory[date],
+          tot,
+          exTotal,
+          ok: (tot - exTotal) <= newHistory[date].goal
+        };
+        setHistory(newHistory);
+        localStorage.setItem('ph', JSON.stringify(newHistory));
+        setEditingHistory(null);
       };
 
       const quick = (amt) => setFeeds([...feeds, { hour: new Date().getHours(), cal: amt, note: '' }]);
@@ -279,7 +324,7 @@
           </div>
         );
       }
-      
+
       if (view === 'history') {
         const sorted = Object.entries(history).sort(([a], [b]) => b.localeCompare(a));
         return (
@@ -297,18 +342,43 @@
                     const diff = d.goal - netCal;
                     return (
                       <div key={dt} className={`p-4 rounded-lg border-2 ${d.ok ? 'bg-green-50 border-green-200' : 'bg-red-50 border-red-200'}`}>
-                        <div className="flex justify-between mb-2">
-                          <h3 className="font-semibold">{date}</h3>
-                          <span className={`px-3 py-1 rounded-full text-sm font-medium ${d.ok ? 'bg-green-200 text-green-800' : 'bg-red-200 text-red-800'}`}>
-                            {d.ok ? '✓ Under' : '✗ Over'}
-                          </span>
-                        </div>
-                        <div className="grid grid-cols-4 gap-4 text-sm">
-                          <div><p className="text-gray-600">Food</p><p className="text-lg font-bold">{d.tot}</p></div>
-                          <div><p className="text-gray-600">Exercise</p><p className="text-lg font-bold text-green-600">-{d.exTotal || 0}</p></div>
-                          <div><p className="text-gray-600">Net</p><p className="text-lg font-bold">{netCal}</p></div>
-                          <div><p className="text-gray-600">vs Goal</p><p className={`text-lg font-bold ${diff >= 0 ? 'text-green-700' : 'text-red-700'}`}>{diff >= 0 ? '+' : ''}{diff}</p></div>
-                        </div>
+                        {editingHistory === dt ? (
+                          <div className="space-y-3">
+                            <div className="flex gap-3">
+                              <div className="flex-1">
+                                <label className="block text-sm font-medium mb-1">Food Calories</label>
+                                <input type="number" min="0" value={historyEditVals.tot} onChange={(e) => setHistoryEditVals({...historyEditVals, tot: e.target.value})} className="w-full px-3 py-2 border rounded-lg" />
+                              </div>
+                              <div className="flex-1">
+                                <label className="block text-sm font-medium mb-1">Exercise Calories</label>
+                                <input type="number" min="0" value={historyEditVals.exTotal} onChange={(e) => setHistoryEditVals({...historyEditVals, exTotal: e.target.value})} className="w-full px-3 py-2 border rounded-lg" />
+                              </div>
+                            </div>
+                            <div className="flex gap-2">
+                              <button onClick={() => saveHistoryEdit(dt)} className="px-4 py-2 bg-green-500 hover:bg-green-600 text-white rounded-lg font-medium">Save</button>
+                              <button onClick={() => setEditingHistory(null)} className="px-4 py-2 bg-gray-200 hover:bg-gray-300 rounded-lg font-medium">Cancel</button>
+                              <button onClick={() => deleteHistoryEntry(dt)} className="px-4 py-2 bg-red-500 hover:bg-red-600 text-white rounded-lg font-medium ml-auto">Delete</button>
+                            </div>
+                          </div>
+                        ) : (
+                          <>
+                            <div className="flex justify-between mb-2">
+                              <h3 className="font-semibold">{date}</h3>
+                              <div className="flex gap-2 items-center">
+                                <span className={`px-3 py-1 rounded-full text-sm font-medium ${d.ok ? 'bg-green-200 text-green-800' : 'bg-red-200 text-red-800'}`}>
+                                  {d.ok ? '✓ Under' : '✗ Over'}
+                                </span>
+                                <button onClick={() => { setEditingHistory(dt); setHistoryEditVals({ tot: d.tot.toString(), exTotal: (d.exTotal || 0).toString() }); }} className="text-blue-600 hover:text-blue-700 text-sm font-medium">Edit</button>
+                              </div>
+                            </div>
+                            <div className="grid grid-cols-4 gap-4 text-sm">
+                              <div><p className="text-gray-600">Food</p><p className="text-lg font-bold">{d.tot}</p></div>
+                              <div><p className="text-gray-600">Exercise</p><p className="text-lg font-bold text-green-600">-{d.exTotal || 0}</p></div>
+                              <div><p className="text-gray-600">Net</p><p className="text-lg font-bold">{netCal}</p></div>
+                              <div><p className="text-gray-600">vs Goal</p><p className={`text-lg font-bold ${diff >= 0 ? 'text-green-700' : 'text-red-700'}`}>{diff >= 0 ? '+' : ''}{diff}</p></div>
+                            </div>
+                          </>
+                        )}
                       </div>
                     );
                   })}
@@ -320,6 +390,9 @@
       }
 
       if (view === 'setup' || !settings) {
+        if (settings && (!inputs.weight || !inputs.heightFt)) {
+          loadSettings();
+        }
         const canCalc = inputs.weight && inputs.heightFt && inputs.age;
         const bmr = canCalc ? calcBMR() : null;
         return (
@@ -371,13 +444,13 @@
             <div className="bg-white rounded-2xl shadow-xl p-8">
               <h2 className="text-2xl font-bold mb-4 flex items-center gap-2"><Utensils />Log Feed</h2>
               <div className="mb-4"><p className="text-sm text-gray-600 mb-2">Quick Add:</p><div className="flex gap-2"><button onClick={() => quick(100)} className="px-4 py-2 bg-green-100 hover:bg-green-200 rounded-lg text-green-800 font-medium">+100</button><button onClick={() => quick(200)} className="px-4 py-2 bg-green-100 hover:bg-green-200 rounded-lg text-green-800 font-medium">+200</button><button onClick={() => quick(500)} className="px-4 py-2 bg-green-100 hover:bg-green-200 rounded-lg text-green-800 font-medium">+500</button></div></div>
-              <div className="grid grid-cols-4 gap-3 mb-6"><div><label className="block text-sm font-medium mb-1">Hour</label><input type="number" min="0" max="23" value={newFeed.hour} onChange={(e) => setNewFeed({...newFeed, hour: e.target.value})} placeholder="8" className="w-full px-3 py-2 border rounded-lg" /></div><div><label className="block text-sm font-medium mb-1">Calories</label><input type="number" min="0" value={newFeed.cal} onChange={(e) => setNewFeed({...newFeed, cal: e.target.value})} placeholder="450" className="w-full px-3 py-2 border rounded-lg" /></div><div><label className="block text-sm font-medium mb-1">Note</label><input type="text" value={newFeed.note} onChange={(e) => setNewFeed({...newFeed, note: e.target.value})} placeholder="snack" className="w-full px-3 py-2 border rounded-lg" /></div><div className="flex items-end"><button onClick={add} className="w-full px-6 py-2 bg-orange-500 hover:bg-orange-600 text-white font-semibold rounded-lg">Add</button></div></div>
+              <div className="grid grid-cols-4 gap-3 mb-6"><div><label className="block text-sm font-medium mb-1">Hour (optional)</label><input type="number" min="0" max="23" value={newFeed.hour} onChange={(e) => setNewFeed({...newFeed, hour: e.target.value})} placeholder="now" className="w-full px-3 py-2 border rounded-lg" /></div><div><label className="block text-sm font-medium mb-1">Calories</label><input type="number" min="0" value={newFeed.cal} onChange={(e) => setNewFeed({...newFeed, cal: e.target.value})} placeholder="450" className="w-full px-3 py-2 border rounded-lg" /></div><div><label className="block text-sm font-medium mb-1">Note</label><input type="text" value={newFeed.note} onChange={(e) => setNewFeed({...newFeed, note: e.target.value})} placeholder="snack" className="w-full px-3 py-2 border rounded-lg" /></div><div className="flex items-end"><button onClick={add} className="w-full px-6 py-2 bg-orange-500 hover:bg-orange-600 text-white font-semibold rounded-lg">Add</button></div></div>
               <div className="space-y-2"><h3 className="text-lg font-semibold mb-3">Today's Feeds</h3>{!feeds.length ? <p className="text-gray-500 text-center py-8">No feeds yet</p> : feeds.map((f, i) => <div key={i} className="bg-gray-50 p-3 rounded-lg">{editIdx === i ? <div className="flex gap-2 items-center"><input type="number" min="0" max="23" value={editVals.hour} onChange={(e) => setEditVals({...editVals, hour: e.target.value})} className="w-20 px-2 py-1 border rounded" /><input type="number" min="0" value={editVals.cal} onChange={(e) => setEditVals({...editVals, cal: e.target.value})} className="w-24 px-2 py-1 border rounded" /><input type="text" value={editVals.note} onChange={(e) => setEditVals({...editVals, note: e.target.value})} className="flex-1 px-2 py-1 border rounded" /><button onClick={() => saveEdit(i)} className="text-green-600 font-medium">Save</button><button onClick={() => setEditIdx(null)} className="text-gray-600 font-medium">Cancel</button></div> : <div className="flex justify-between items-center"><div><span className="font-semibold">{f.hour}:00</span><span className="mx-2 text-gray-400">•</span><span>{f.cal} cal</span>{f.note && <span className="ml-2 text-gray-500 text-sm">({f.note})</span>}</div><div className="flex gap-2"><button onClick={() => startEdit(i)} className="text-blue-600 text-sm font-medium">Edit</button><button onClick={() => del(i)} className="text-red-600 text-sm font-medium">Delete</button></div></div>}</div>)}</div>
             </div>
             <div className="bg-white rounded-2xl shadow-xl p-8">
-              <h2 className="text-2xl font-bold mb-4 flex items-center gap-2"><Dumbbell />Log Exercise</h2>
+              <h2 className="text-2xl font-bold mb-4 flex items-center gap-2"><span className="text-2xl">💪</span>Log Exercise</h2>
               <div className="mb-4"><p className="text-sm text-gray-600 mb-2">Quick Add:</p><div className="flex gap-2"><button onClick={() => quickEx(100)} className="px-4 py-2 bg-blue-100 hover:bg-blue-200 rounded-lg text-blue-800 font-medium">100</button><button onClick={() => quickEx(200)} className="px-4 py-2 bg-blue-100 hover:bg-blue-200 rounded-lg text-blue-800 font-medium">200</button><button onClick={() => quickEx(300)} className="px-4 py-2 bg-blue-100 hover:bg-blue-200 rounded-lg text-blue-800 font-medium">300</button></div></div>
-              <div className="grid grid-cols-4 gap-3 mb-6"><div><label className="block text-sm font-medium mb-1">Hour</label><input type="number" min="0" max="23" value={newExercise.hour} onChange={(e) => setNewExercise({...newExercise, hour: e.target.value})} placeholder="8" className="w-full px-3 py-2 border rounded-lg" /></div><div><label className="block text-sm font-medium mb-1">Calories</label><input type="number" min="0" value={newExercise.cal} onChange={(e) => setNewExercise({...newExercise, cal: e.target.value})} placeholder="300" className="w-full px-3 py-2 border rounded-lg" /></div><div><label className="block text-sm font-medium mb-1">Activity</label><input type="text" value={newExercise.note} onChange={(e) => setNewExercise({...newExercise, note: e.target.value})} placeholder="run" className="w-full px-3 py-2 border rounded-lg" /></div><div className="flex items-end"><button onClick={addExercise} className="w-full px-6 py-2 bg-blue-500 hover:bg-blue-600 text-white font-semibold rounded-lg">Add</button></div></div>
+              <div className="grid grid-cols-4 gap-3 mb-6"><div><label className="block text-sm font-medium mb-1">Hour (optional)</label><input type="number" min="0" max="23" value={newExercise.hour} onChange={(e) => setNewExercise({...newExercise, hour: e.target.value})} placeholder="now" className="w-full px-3 py-2 border rounded-lg" /></div><div><label className="block text-sm font-medium mb-1">Calories</label><input type="number" min="0" value={newExercise.cal} onChange={(e) => setNewExercise({...newExercise, cal: e.target.value})} placeholder="300" className="w-full px-3 py-2 border rounded-lg" /></div><div><label className="block text-sm font-medium mb-1">Activity</label><input type="text" value={newExercise.note} onChange={(e) => setNewExercise({...newExercise, note: e.target.value})} placeholder="run" className="w-full px-3 py-2 border rounded-lg" /></div><div className="flex items-end"><button onClick={addExercise} className="w-full px-6 py-2 bg-blue-500 hover:bg-blue-600 text-white font-semibold rounded-lg">Add</button></div></div>
               <div className="space-y-2"><h3 className="text-lg font-semibold mb-3">Today's Exercise</h3>{!exercises.length ? <p className="text-gray-500 text-center py-8">No exercise logged yet</p> : exercises.map((ex, i) => <div key={i} className="bg-blue-50 p-3 rounded-lg"><div className="flex justify-between items-center"><div><span className="font-semibold">{ex.hour}:00</span><span className="mx-2 text-gray-400">•</span><span className="text-green-600 font-bold">+{ex.cal} cal</span>{ex.note && <span className="ml-2 text-gray-500 text-sm">({ex.note})</span>}</div><button onClick={() => delEx(i)} className="text-red-600 text-sm font-medium">Delete</button></div></div>)}</div>
             </div>
           </div>
@@ -390,4 +463,3 @@
   </script>
 </body>
 </html>
-    
