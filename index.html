@@ -1,422 +1,257 @@
-import React, { useState, useEffect } from 'react';
-import { Calculator, Clock, Utensils, Settings, TrendingUp, Calendar } from 'lucide-react';
-
-export default function PotatoTracker() {
-  const [view, setView] = useState('main');
-  const [settings, setSettings] = useState(null);
-  const [feeds, setFeeds] = useState([]);
-  const [history, setHistory] = useState({});
-  const [inputs, setInputs] = useState({
-    weight: '', heightFt: '', heightIn: '', age: '', gender: 'male', activity: '1.2',
-    defPct: '18', defFlat: '', startHr: '4', endHr: '22'
-  });
-  const [newFeed, setNewFeed] = useState({ hour: '', cal: '', note: '' });
-  const [editIdx, setEditIdx] = useState(null);
-  const [editVals, setEditVals] = useState({ hour: '', cal: '', note: '' });
-
-  useEffect(() => {
-    const s = localStorage.getItem('ps');
-    const f = localStorage.getItem('pf');
-    const d = localStorage.getItem('pd');
-    const h = localStorage.getItem('ph');
-    const today = new Date().toDateString();
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>🥔 Potato Tracker</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+  <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+</head>
+<body>
+  <div id="root"></div>
+  
+  <script type="text/babel">
+    const { useState, useEffect } = React;
     
-    if (s) setSettings(JSON.parse(s));
-    else setView('setup');
-    if (h) setHistory(JSON.parse(h));
-    
-    if (f && d === today) {
-      setFeeds(JSON.parse(f));
-    } else if (d !== today && d && s) {
-      const yest = new Date(d).toISOString().split('T')[0];
-      const yf = f ? JSON.parse(f) : [];
-      const tot = yf.reduce((a, b) => a + b.cal, 0);
-      const os = JSON.parse(s);
-      const nh = h ? JSON.parse(h) : {};
-      nh[yest] = { tot, goal: os.goal, ok: tot <= os.goal };
-      setHistory(nh);
-      localStorage.setItem('ph', JSON.stringify(nh));
-      setFeeds([]);
-      localStorage.setItem('pf', '[]');
-      localStorage.setItem('pd', today);
-    } else {
-      localStorage.setItem('pd', today);
-    }
-  }, []);
+    const Calculator = () => <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><rect width="16" height="20" x="4" y="2" rx="2"/><line x1="8" x2="16" y1="6" y2="6"/></svg>;
+    const Clock = () => <svg className="w-12 h-12" fill="none" stroke="currentColor" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>;
+    const Utensils = () => <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M3 2v7c0 1.1.9 2 2 2h4a2 2 0 0 0 2-2V2M7 2v20M21 15V2a5 5 0 0 0-5 5v6c0 1.1.9 2 2 2h3v7"/></svg>;
+    const TrendingUp = () => <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><polyline points="22 7 13.5 15.5 8.5 10.5 2 17"/><polyline points="16 7 22 7 22 13"/></svg>;
+    const Calendar = () => <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><rect width="18" height="18" x="3" y="4" rx="2"/><line x1="16" x2="16" y1="2" y2="6"/><line x1="8" x2="8" y1="2" y2="6"/><line x1="3" x2="21" y1="10" y2="10"/></svg>;
 
-  useEffect(() => {
-    localStorage.setItem('pf', JSON.stringify(feeds));
-  }, [feeds]);
+    function PotatoTracker() {
+      const [view, setView] = useState('main');
+      const [settings, setSettings] = useState(null);
+      const [feeds, setFeeds] = useState([]);
+      const [history, setHistory] = useState({});
+      const [inputs, setInputs] = useState({
+        weight: '', heightFt: '', heightIn: '', age: '', gender: 'male', activity: '1.2',
+        defPct: '18', defFlat: '', startHr: '4', endHr: '22'
+      });
+      const [newFeed, setNewFeed] = useState({ hour: '', cal: '', note: '' });
+      const [editIdx, setEditIdx] = useState(null);
+      const [editVals, setEditVals] = useState({ hour: '', cal: '', note: '' });
 
-  const calcBMR = () => {
-    const kg = parseFloat(inputs.weight) * 0.453592;
-    const cm = ((parseFloat(inputs.heightFt) * 12) + parseFloat(inputs.heightIn || 0)) * 2.54;
-    const bmr = inputs.gender === 'male' ? 
-      10 * kg + 6.25 * cm - 5 * parseFloat(inputs.age) + 5 :
-      10 * kg + 6.25 * cm - 5 * parseFloat(inputs.age) - 161;
-    return Math.round(bmr * parseFloat(inputs.activity));
-  };
+      useEffect(() => {
+        const s = localStorage.getItem('ps');
+        const f = localStorage.getItem('pf');
+        const d = localStorage.getItem('pd');
+        const h = localStorage.getItem('ph');
+        const today = new Date().toDateString();
+        
+        if (s) setSettings(JSON.parse(s));
+        else setView('setup');
+        if (h) setHistory(JSON.parse(h));
+        
+        if (f && d === today) {
+          setFeeds(JSON.parse(f));
+        } else if (d !== today && d && s) {
+          const yest = new Date(d).toISOString().split('T')[0];
+          const yf = f ? JSON.parse(f) : [];
+          const tot = yf.reduce((a, b) => a + b.cal, 0);
+          const os = JSON.parse(s);
+          const nh = h ? JSON.parse(h) : {};
+          nh[yest] = { tot, goal: os.goal, ok: tot <= os.goal };
+          setHistory(nh);
+          localStorage.setItem('ph', JSON.stringify(nh));
+          setFeeds([]);
+          localStorage.setItem('pf', '[]');
+          localStorage.setItem('pd', today);
+        } else {
+          localStorage.setItem('pd', today);
+        }
+      }, []);
 
-  const handlePct = (v) => {
-    if (!inputs.weight || !inputs.heightFt || !inputs.age) {
-      setInputs({...inputs, defPct: v, defFlat: ''});
-      return;
-    }
-    const bmr = calcBMR();
-    setInputs({...inputs, defPct: v, defFlat: Math.round(bmr * parseFloat(v) / 100).toString()});
-  };
+      useEffect(() => { localStorage.setItem('pf', JSON.stringify(feeds)); }, [feeds]);
 
-  const handleFlat = (v) => {
-    if (!inputs.weight || !inputs.heightFt || !inputs.age) {
-      setInputs({...inputs, defFlat: v, defPct: ''});
-      return;
-    }
-    const bmr = calcBMR();
-    setInputs({...inputs, defFlat: v, defPct: ((parseFloat(v) / bmr) * 100).toFixed(1)});
-  };
+      const calcBMR = () => {
+        const kg = parseFloat(inputs.weight) * 0.453592;
+        const cm = ((parseFloat(inputs.heightFt) * 12) + parseFloat(inputs.heightIn || 0)) * 2.54;
+        const bmr = inputs.gender === 'male' ? 10 * kg + 6.25 * cm - 5 * parseFloat(inputs.age) + 5 : 10 * kg + 6.25 * cm - 5 * parseFloat(inputs.age) - 161;
+        return Math.round(bmr * parseFloat(inputs.activity));
+      };
 
-  const save = () => {
-    if (!inputs.weight || !inputs.heightFt || !inputs.age) return;
-    const bmr = calcBMR();
-    const def = inputs.defFlat ? parseFloat(inputs.defFlat) : Math.round(bmr * parseFloat(inputs.defPct) / 100);
-    const ns = { bmr, goal: bmr - def, start: parseInt(inputs.startHr), end: parseInt(inputs.endHr) };
-    setSettings(ns);
-    localStorage.setItem('ps', JSON.stringify(ns));
-    setView('main');
-  };
+      const handlePct = (v) => {
+        if (!inputs.weight || !inputs.heightFt || !inputs.age) { setInputs({...inputs, defPct: v, defFlat: ''}); return; }
+        const bmr = calcBMR();
+        setInputs({...inputs, defPct: v, defFlat: Math.round(bmr * parseFloat(v) / 100).toString()});
+      };
 
-  const getBudget = () => {
-    if (!settings) return null;
-    const hr = new Date().getHours();
-    const { start, end, goal } = settings;
-    const hrs = end >= start ? end - start + 1 : (24 - start) + end + 1;
-    const perHr = Math.round(goal / hrs);
-    const inWindow = end >= start ? hr >= start && hr <= end : hr >= start || hr <= end;
-    
-    if (!inWindow) return { msg: "Outside feasting hours", bud: 0, cons: 0, rem: 0, hr };
-    
-    let passed = 0, h = start;
-    while (h !== hr) { passed++; h = (h + 1) % 24; }
-    passed++;
-    
-    const bud = passed * perHr;
-    const cons = feeds.reduce((a, b) => a + b.cal, 0);
-    return { bud, cons, rem: bud - cons, perHr, hr, goal };
-  };
+      const handleFlat = (v) => {
+        if (!inputs.weight || !inputs.heightFt || !inputs.age) { setInputs({...inputs, defFlat: v, defPct: ''}); return; }
+        const bmr = calcBMR();
+        setInputs({...inputs, defFlat: v, defPct: ((parseFloat(v) / bmr) * 100).toFixed(1)});
+      };
 
-  const add = () => {
-    if (newFeed.hour && newFeed.cal) {
-      setFeeds([...feeds, { hour: parseInt(newFeed.hour), cal: parseInt(newFeed.cal), note: newFeed.note }]);
-      setNewFeed({ hour: '', cal: '', note: '' });
-    }
-  };
+      const save = () => {
+        if (!inputs.weight || !inputs.heightFt || !inputs.age) return;
+        const bmr = calcBMR();
+        const def = inputs.defFlat ? parseFloat(inputs.defFlat) : Math.round(bmr * parseFloat(inputs.defPct) / 100);
+        const ns = { bmr, goal: bmr - def, start: parseInt(inputs.startHr), end: parseInt(inputs.endHr) };
+        setSettings(ns);
+        localStorage.setItem('ps', JSON.stringify(ns));
+        setView('main');
+      };
 
-  const quick = (amt) => setFeeds([...feeds, { hour: new Date().getHours(), cal: amt, note: '' }]);
-  const del = (i) => { setFeeds(feeds.filter((_, idx) => idx !== i)); setEditIdx(null); };
-  const startEdit = (i) => { setEditIdx(i); setEditVals({ hour: feeds[i].hour.toString(), cal: feeds[i].cal.toString(), note: feeds[i].note }); };
-  const saveEdit = (i) => {
-    const u = [...feeds];
-    u[i] = { hour: parseInt(editVals.hour), cal: parseInt(editVals.cal), note: editVals.note };
-    setFeeds(u);
-    setEditIdx(null);
-  };
+      const getBudget = () => {
+        if (!settings) return null;
+        const hr = new Date().getHours();
+        const { start, end, goal } = settings;
+        const hrs = end >= start ? end - start + 1 : (24 - start) + end + 1;
+        const perHr = Math.round(goal / hrs);
+        const inWindow = end >= start ? hr >= start && hr <= end : hr >= start || hr <= end;
+        if (!inWindow) return { msg: "Outside feasting hours", bud: 0, cons: 0, rem: 0, hr };
+        let passed = 0, h = start;
+        while (h !== hr) { passed++; h = (h + 1) % 24; }
+        passed++;
+        const bud = passed * perHr;
+        const cons = feeds.reduce((a, b) => a + b.cal, 0);
+        return { bud, cons, rem: bud - cons, perHr, hr, goal };
+      };
 
-  const getStreak = () => {
-    const d = Object.keys(history).sort().reverse();
-    let s = 0, c = new Date();
-    c.setDate(c.getDate() - 1);
-    for (let i = 0; i < d.length; i++) {
-      const k = c.toISOString().split('T')[0];
-      if (d[i] === k && history[k].ok) { s++; c.setDate(c.getDate() - 1); }
-      else break;
-    }
-    return s;
-  };
+      const add = () => {
+        if (newFeed.hour && newFeed.cal) {
+          setFeeds([...feeds, { hour: parseInt(newFeed.hour), cal: parseInt(newFeed.cal), note: newFeed.note }]);
+          setNewFeed({ hour: '', cal: '', note: '' });
+        }
+      };
 
-  const getWeekly = () => {
-    const w = new Date();
-    w.setDate(w.getDate() - 7);
-    const d = Object.entries(history).filter(([dt]) => new Date(dt) >= w);
-    if (!d.length) return null;
-    return {
-      avg: Math.round(d.reduce((a, [, v]) => a + v.tot, 0) / d.length),
-      avgRem: Math.round(d.reduce((a, [, v]) => a + (v.goal - v.tot), 0) / d.length),
-      ok: d.filter(([, v]) => v.ok).length,
-      tot: d.length
-    };
-  };
+      const quick = (amt) => setFeeds([...feeds, { hour: new Date().getHours(), cal: amt, note: '' }]);
+      const del = (i) => { setFeeds(feeds.filter((_, idx) => idx !== i)); setEditIdx(null); };
+      const startEdit = (i) => { setEditIdx(i); setEditVals({ hour: feeds[i].hour.toString(), cal: feeds[i].cal.toString(), note: feeds[i].note }); };
+      const saveEdit = (i) => {
+        const u = [...feeds];
+        u[i] = { hour: parseInt(editVals.hour), cal: parseInt(editVals.cal), note: editVals.note };
+        setFeeds(u);
+        setEditIdx(null);
+      };
 
-  const b = getBudget();
-  const st = getStreak();
-  const ws = getWeekly();
-  const prog = b && b.goal ? Math.min((b.cons / b.goal) * 100, 100) : 0;
+      const getStreak = () => {
+        const d = Object.keys(history).sort().reverse();
+        let s = 0, c = new Date();
+        c.setDate(c.getDate() - 1);
+        for (let i = 0; i < d.length; i++) {
+          const k = c.toISOString().split('T')[0];
+          if (d[i] === k && history[k].ok) { s++; c.setDate(c.getDate() - 1); }
+          else break;
+        }
+        return s;
+      };
 
-  if (view === 'history') {
-    const sorted = Object.entries(history).sort(([a], [b]) => b.localeCompare(a));
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-amber-50 to-orange-100 p-6">
-        <div className="max-w-4xl mx-auto bg-white rounded-2xl shadow-xl p-8">
-          <div className="flex justify-between items-center mb-6">
-            <h1 className="text-3xl font-bold text-gray-800 flex items-center gap-2">
-              <Calendar className="w-8 h-8" />History
-            </h1>
-            <button onClick={() => setView('main')} className="px-4 py-2 bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors">Back</button>
-          </div>
-          {!sorted.length ? <p className="text-center py-12 text-gray-500">No history yet!</p> : (
-            <div className="space-y-4">
-              {sorted.map(([dt, d]) => {
-                const date = new Date(dt).toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
-                const diff = d.goal - d.tot;
-                return (
-                  <div key={dt} className={`p-4 rounded-lg border-2 ${d.ok ? 'bg-green-50 border-green-200' : 'bg-red-50 border-red-200'}`}>
-                    <div className="flex justify-between mb-2">
-                      <h3 className="font-semibold text-gray-800">{date}</h3>
-                      <span className={`px-3 py-1 rounded-full text-sm font-medium ${d.ok ? 'bg-green-200 text-green-800' : 'bg-red-200 text-red-800'}`}>
-                        {d.ok ? '✓ Under' : '✗ Over'}
-                      </span>
-                    </div>
-                    <div className="grid grid-cols-3 gap-4 text-sm">
-                      <div><p className="text-gray-600">Consumed</p><p className="text-lg font-bold text-gray-800">{d.tot}</p></div>
-                      <div><p className="text-gray-600">Goal</p><p className="text-lg font-bold text-gray-800">{d.goal}</p></div>
-                      <div><p className="text-gray-600">Diff</p><p className={`text-lg font-bold ${diff >= 0 ? 'text-green-700' : 'text-red-700'}`}>{diff >= 0 ? '+' : ''}{diff}</p></div>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          )}
-        </div>
-      </div>
-    );
-  }
+      const getWeekly = () => {
+        const w = new Date();
+        w.setDate(w.getDate() - 7);
+        const d = Object.entries(history).filter(([dt]) => new Date(dt) >= w);
+        if (!d.length) return null;
+        return {
+          avg: Math.round(d.reduce((a, [, v]) => a + v.tot, 0) / d.length),
+          avgRem: Math.round(d.reduce((a, [, v]) => a + (v.goal - v.tot), 0) / d.length),
+          ok: d.filter(([, v]) => v.ok).length,
+          tot: d.length
+        };
+      };
 
-  if (view === 'setup' || !settings) {
-    const canCalc = inputs.weight && inputs.heightFt && inputs.age;
-    const bmr = canCalc ? calcBMR() : null;
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-amber-50 to-orange-100 p-6">
-        <div className="max-w-2xl mx-auto bg-white rounded-2xl shadow-xl p-8">
-          <div className="flex items-center gap-3 mb-6">
-            <div className="text-4xl">🥔</div>
-            <h1 className="text-3xl font-bold text-gray-800">Potato Tracker Setup</h1>
-          </div>
-          <div className="space-y-6">
-            <div className="bg-amber-50 p-6 rounded-lg space-y-4">
-              <h2 className="text-xl font-semibold text-gray-700 flex items-center gap-2">
-                <Calculator className="w-5 h-5" />Calculate BMR
-              </h2>
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Weight (lbs)</label>
-                  <input type="number" step="0.1" value={inputs.weight} onChange={(e) => setInputs({...inputs, weight: e.target.value})}
-                    onBlur={() => inputs.defPct && canCalc && handlePct(inputs.defPct)} className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500" />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Height</label>
-                  <div className="flex gap-2">
-                    <input type="number" min="0" max="8" value={inputs.heightFt} placeholder="ft" onChange={(e) => setInputs({...inputs, heightFt: e.target.value})}
-                      onBlur={() => inputs.defPct && canCalc && handlePct(inputs.defPct)} className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500" />
-                    <input type="number" min="0" max="11" value={inputs.heightIn} placeholder="in" onChange={(e) => setInputs({...inputs, heightIn: e.target.value})}
-                      onBlur={() => inputs.defPct && canCalc && handlePct(inputs.defPct)} className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500" />
-                  </div>
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Age</label>
-                  <input type="number" value={inputs.age} onChange={(e) => setInputs({...inputs, age: e.target.value})}
-                    onBlur={() => inputs.defPct && canCalc && handlePct(inputs.defPct)} className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500" />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Gender</label>
-                  <select value={inputs.gender} onChange={(e) => setInputs({...inputs, gender: e.target.value})} className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500">
-                    <option value="male">Male</option>
-                    <option value="female">Female</option>
-                  </select>
-                </div>
+      const b = getBudget();
+      const st = getStreak();
+      const ws = getWeekly();
+      const prog = b && b.goal ? Math.min((b.cons / b.goal) * 100, 100) : 0;
+      if (view === 'history') {
+        const sorted = Object.entries(history).sort(([a], [b]) => b.localeCompare(a));
+        return (
+          <div className="min-h-screen bg-gradient-to-br from-amber-50 to-orange-100 p-6">
+            <div className="max-w-4xl mx-auto bg-white rounded-2xl shadow-xl p-8">
+              <div className="flex justify-between items-center mb-6">
+                <h1 className="text-3xl font-bold text-gray-800 flex items-center gap-2"><Calendar />History</h1>
+                <button onClick={() => setView('main')} className="px-4 py-2 bg-gray-100 hover:bg-gray-200 rounded-lg">Back</button>
               </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Activity Level</label>
-                <select value={inputs.activity} onChange={(e) => setInputs({...inputs, activity: e.target.value})} className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500">
-                  <option value="1.2">Sedentary</option>
-                  <option value="1.375">Lightly active</option>
-                  <option value="1.55">Moderately active</option>
-                  <option value="1.725">Very active</option>
-                  <option value="1.9">Extremely active</option>
-                </select>
-              </div>
-              {bmr && <div className="bg-white p-3 rounded border border-amber-200"><p className="text-sm text-gray-600"><span className="font-semibold">BMR:</span> {bmr} cal/day</p></div>}
-            </div>
-            <div className="space-y-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Calorie Deficit</label>
-                <div className="grid grid-cols-2 gap-3">
-                  <div>
-                    <input type="number" min="0" max="50" step="0.1" value={inputs.defPct} onChange={(e) => handlePct(e.target.value)} placeholder="%" className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500" />
-                    <p className="text-xs text-gray-500 mt-1">Percent (%)</p>
-                  </div>
-                  <div>
-                    <input type="number" min="0" value={inputs.defFlat} onChange={(e) => handleFlat(e.target.value)} placeholder="Cal" className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500" />
-                    <p className="text-xs text-gray-500 mt-1">Flat (cal)</p>
-                  </div>
-                </div>
-                {bmr && inputs.defFlat && <p className="text-sm text-gray-600 mt-2"><span className="font-semibold">Goal:</span> {bmr - parseInt(inputs.defFlat)} cal</p>}
-              </div>
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Start Hour</label>
-                  <input type="number" min="0" max="23" value={inputs.startHr} onChange={(e) => setInputs({...inputs, startHr: e.target.value})} className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500" />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">End Hour</label>
-                  <input type="number" min="0" max="23" value={inputs.endHr} onChange={(e) => setInputs({...inputs, endHr: e.target.value})} className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500" />
-                </div>
-              </div>
-            </div>
-            <button onClick={save} className="w-full bg-orange-500 hover:bg-orange-600 text-white font-semibold py-3 rounded-lg transition-colors">Save Settings</button>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
-  return (
-    <div className="min-h-screen bg-gradient-to-br from-amber-50 to-orange-100 p-6">
-      <div className="max-w-4xl mx-auto space-y-6">
-        <div className="bg-white rounded-2xl shadow-xl p-8">
-          <div className="flex justify-between items-center mb-6">
-            <div>
-              <h1 className="text-3xl font-bold text-gray-800 flex items-center gap-2">🥔 Potato Tracker</h1>
-              {b && <p className="text-sm text-gray-500">Time: {b.hr}:00</p>}
-            </div>
-            <div className="flex gap-2">
-              <button onClick={() => setView('history')} className="flex items-center gap-2 px-4 py-2 bg-blue-100 hover:bg-blue-200 rounded-lg transition-colors">
-                <Calendar className="w-4 h-4" />History
-              </button>
-              <button onClick={() => setView('setup')} className="flex items-center gap-2 px-4 py-2 bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors">
-                <Settings className="w-4 h-4" />Settings
-              </button>
-            </div>
-          </div>
-
-          {st > 0 && <div className="bg-purple-50 border border-purple-200 rounded-lg p-4 mb-4"><p className="text-purple-800 font-semibold">🔥 {st} day streak!</p></div>}
-
-          {ws && (
-            <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
-              <h3 className="font-semibold text-blue-900 mb-2 flex items-center gap-2"><TrendingUp className="w-4 h-4" />Last 7 Days</h3>
-              <div className="grid grid-cols-3 gap-4 text-sm">
-                <div><p className="text-blue-700">Avg Consumed</p><p className="text-lg font-bold text-blue-900">{ws.avg}</p></div>
-                <div><p className="text-blue-700">Avg Remaining</p><p className="text-lg font-bold text-blue-900">{ws.avgRem}</p></div>
-                <div><p className="text-blue-700">Success</p><p className="text-lg font-bold text-blue-900">{ws.ok}/{ws.tot}</p></div>
-              </div>
-            </div>
-          )}
-
-          {b && b.msg ? (
-            <div className="bg-blue-50 border border-blue-200 rounded-lg p-6 text-center">
-              <Clock className="w-12 h-12 mx-auto mb-3 text-blue-500" />
-              <p className="text-lg text-gray-700">{b.msg}</p>
-            </div>
-          ) : b && (
-            <>
-              <div className="mb-6">
-                <div className="flex justify-between mb-2">
-                  <span className="text-sm font-medium text-gray-700">Progress</span>
-                  <span className="text-sm font-medium text-gray-700">{b.cons} / {b.goal} cal</span>
-                </div>
-                <div className="w-full bg-gray-200 rounded-full h-4 overflow-hidden">
-                  <div className={`h-full rounded-full transition-all ${prog <= 100 ? 'bg-green-500' : 'bg-red-500'}`} style={{width: `${prog}%`}} />
-                </div>
-              </div>
-              <div className="grid grid-cols-3 gap-4 mb-6">
-                <div className="bg-green-50 border border-green-200 rounded-lg p-4">
-                  <p className="text-sm text-gray-600 mb-1">Budgeted</p>
-                  <p className="text-3xl font-bold text-green-700">{b.bud}</p>
-                  <p className="text-xs text-gray-500 mt-1">{b.perHr}/hr</p>
-                </div>
-                <div className="bg-orange-50 border border-orange-200 rounded-lg p-4">
-                  <p className="text-sm text-gray-600 mb-1">Consumed</p>
-                  <p className="text-3xl font-bold text-orange-700">{b.cons}</p>
-                </div>
-                <div className={`border rounded-lg p-4 ${b.rem >= 0 ? 'bg-blue-50 border-blue-200' : 'bg-red-50 border-red-200'}`}>
-                  <p className="text-sm text-gray-600 mb-1">Remaining</p>
-                  <p className={`text-3xl font-bold ${b.rem >= 0 ? 'text-blue-700' : 'text-red-700'}`}>{b.rem}</p>
-                </div>
-              </div>
-              <div className="bg-amber-50 rounded-lg p-4">
-                <p className="text-sm text-gray-600">
-                  <span className="font-semibold">Goal:</span> {settings.goal} cal
-                  <span className="mx-2">|</span>
-                  <span className="font-semibold">Hours:</span> {settings.start}:00-{settings.end}:00
-                </p>
-              </div>
-            </>
-          )}
-        </div>
-
-        <div className="bg-white rounded-2xl shadow-xl p-8">
-          <h2 className="text-2xl font-bold text-gray-800 mb-4 flex items-center gap-2">
-            <Utensils className="w-6 h-6" />Log Feed
-          </h2>
-          <div className="mb-4">
-            <p className="text-sm text-gray-600 mb-2">Quick Add:</p>
-            <div className="flex gap-2">
-              <button onClick={() => quick(100)} className="px-4 py-2 bg-green-100 hover:bg-green-200 rounded-lg text-green-800 font-medium transition-colors">+100</button>
-              <button onClick={() => quick(200)} className="px-4 py-2 bg-green-100 hover:bg-green-200 rounded-lg text-green-800 font-medium transition-colors">+200</button>
-              <button onClick={() => quick(500)} className="px-4 py-2 bg-green-100 hover:bg-green-200 rounded-lg text-green-800 font-medium transition-colors">+500</button>
-            </div>
-          </div>
-          <div className="grid grid-cols-4 gap-3 mb-6">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Hour</label>
-              <input type="number" min="0" max="23" value={newFeed.hour} onChange={(e) => setNewFeed({...newFeed, hour: e.target.value})} 
-                placeholder="8" className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500" />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Calories</label>
-              <input type="number" min="0" value={newFeed.cal} onChange={(e) => setNewFeed({...newFeed, cal: e.target.value})} 
-                placeholder="450" className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500" />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Note</label>
-              <input type="text" value={newFeed.note} onChange={(e) => setNewFeed({...newFeed, note: e.target.value})} 
-                placeholder="snack" className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500" />
-            </div>
-            <div className="flex items-end">
-              <button onClick={add} className="w-full px-6 py-2 bg-orange-500 hover:bg-orange-600 text-white font-semibold rounded-lg transition-colors">Add</button>
-            </div>
-          </div>
-          <div className="space-y-2">
-            <h3 className="text-lg font-semibold text-gray-700 mb-3">Today's Feeds</h3>
-            {!feeds.length ? <p className="text-gray-500 text-center py-8">No feeds yet</p> : (
-              feeds.map((f, i) => (
-                <div key={i} className="bg-gray-50 p-3 rounded-lg">
-                  {editIdx === i ? (
-                    <div className="flex gap-2 items-center">
-                      <input type="number" min="0" max="23" value={editVals.hour} onChange={(e) => setEditVals({...editVals, hour: e.target.value})} className="w-20 px-2 py-1 border border-gray-300 rounded" />
-                      <input type="number" min="0" value={editVals.cal} onChange={(e) => setEditVals({...editVals, cal: e.target.value})} className="w-24 px-2 py-1 border border-gray-300 rounded" />
-                      <input type="text" value={editVals.note} onChange={(e) => setEditVals({...editVals, note: e.target.value})} className="flex-1 px-2 py-1 border border-gray-300 rounded" />
-                      <button onClick={() => saveEdit(i)} className="text-green-600 hover:text-green-700 font-medium">Save</button>
-                      <button onClick={() => setEditIdx(null)} className="text-gray-600 hover:text-gray-700 font-medium">Cancel</button>
-                    </div>
-                  ) : (
-                    <div className="flex justify-between items-center">
-                      <div>
-                        <span className="font-semibold text-gray-800">{f.hour}:00</span>
-                        <span className="mx-2 text-gray-400">•</span>
-                        <span className="text-gray-700">{f.cal} cal</span>
-                        {f.note && <span className="ml-2 text-gray-500 text-sm">({f.note})</span>}
+              {!sorted.length ? <p className="text-center py-12 text-gray-500">No history yet!</p> : (
+                <div className="space-y-4">
+                  {sorted.map(([dt, d]) => {
+                    const date = new Date(dt).toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
+                    const diff = d.goal - d.tot;
+                    return (
+                      <div key={dt} className={`p-4 rounded-lg border-2 ${d.ok ? 'bg-green-50 border-green-200' : 'bg-red-50 border-red-200'}`}>
+                        <div className="flex justify-between mb-2">
+                          <h3 className="font-semibold">{date}</h3>
+                          <span className={`px-3 py-1 rounded-full text-sm font-medium ${d.ok ? 'bg-green-200 text-green-800' : 'bg-red-200 text-red-800'}`}>
+                            {d.ok ? '✓ Under' : '✗ Over'}
+                          </span>
+                        </div>
+                        <div className="grid grid-cols-3 gap-4 text-sm">
+                          <div><p className="text-gray-600">Consumed</p><p className="text-lg font-bold">{d.tot}</p></div>
+                          <div><p className="text-gray-600">Goal</p><p className="text-lg font-bold">{d.goal}</p></div>
+                          <div><p className="text-gray-600">Diff</p><p className={`text-lg font-bold ${diff >= 0 ? 'text-green-700' : 'text-red-700'}`}>{diff >= 0 ? '+' : ''}{diff}</p></div>
+                        </div>
                       </div>
-                      <div className="flex gap-2">
-                        <button onClick={() => startEdit(i)} className="text-blue-600 hover:text-blue-700 text-sm font-medium">Edit</button>
-                        <button onClick={() => del(i)} className="text-red-600 hover:text-red-700 text-sm font-medium">Delete</button>
-                      </div>
-                    </div>
-                  )}
+                    );
+                  })}
                 </div>
-              ))
-            )}
+              )}
+            </div>
+          </div>
+        );
+      }
+
+      if (view === 'setup' || !settings) {
+        const canCalc = inputs.weight && inputs.heightFt && inputs.age;
+        const bmr = canCalc ? calcBMR() : null;
+        return (
+          <div className="min-h-screen bg-gradient-to-br from-amber-50 to-orange-100 p-6">
+            <div className="max-w-2xl mx-auto bg-white rounded-2xl shadow-xl p-8">
+              <div className="flex items-center gap-3 mb-6">
+                <div className="text-4xl">🥔</div>
+                <h1 className="text-3xl font-bold">Potato Tracker Setup</h1>
+              </div>
+              <div className="space-y-6">
+                <div className="bg-amber-50 p-6 rounded-lg space-y-4">
+                  <h2 className="text-xl font-semibold flex items-center gap-2"><Calculator />Calculate BMR</h2>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div><label className="block text-sm font-medium mb-1">Weight (lbs)</label><input type="number" step="0.1" value={inputs.weight} onChange={(e) => setInputs({...inputs, weight: e.target.value})} onBlur={() => inputs.defPct && canCalc && handlePct(inputs.defPct)} className="w-full px-3 py-2 border rounded-lg" /></div>
+                    <div><label className="block text-sm font-medium mb-1">Height</label><div className="flex gap-2"><input type="number" min="0" max="8" value={inputs.heightFt} placeholder="ft" onChange={(e) => setInputs({...inputs, heightFt: e.target.value})} onBlur={() => inputs.defPct && canCalc && handlePct(inputs.defPct)} className="flex-1 px-3 py-2 border rounded-lg" /><input type="number" min="0" max="11" value={inputs.heightIn} placeholder="in" onChange={(e) => setInputs({...inputs, heightIn: e.target.value})} onBlur={() => inputs.defPct && canCalc && handlePct(inputs.defPct)} className="flex-1 px-3 py-2 border rounded-lg" /></div></div>
+                    <div><label className="block text-sm font-medium mb-1">Age</label><input type="number" value={inputs.age} onChange={(e) => setInputs({...inputs, age: e.target.value})} onBlur={() => inputs.defPct && canCalc && handlePct(inputs.defPct)} className="w-full px-3 py-2 border rounded-lg" /></div>
+                    <div><label className="block text-sm font-medium mb-1">Gender</label><select value={inputs.gender} onChange={(e) => setInputs({...inputs, gender: e.target.value})} className="w-full px-3 py-2 border rounded-lg"><option value="male">Male</option><option value="female">Female</option></select></div>
+                  </div>
+                  <div><label className="block text-sm font-medium mb-1">Activity Level</label><select value={inputs.activity} onChange={(e) => setInputs({...inputs, activity: e.target.value})} className="w-full px-3 py-2 border rounded-lg"><option value="1.2">Sedentary</option><option value="1.375">Lightly active</option><option value="1.55">Moderately active</option><option value="1.725">Very active</option><option value="1.9">Extremely active</option></select></div>
+                  {bmr && <div className="bg-white p-3 rounded border"><p className="text-sm"><span className="font-semibold">BMR:</span> {bmr} cal/day</p></div>}
+                </div>
+                <div className="space-y-4">
+                  <div><label className="block text-sm font-medium mb-1">Calorie Deficit</label><div className="grid grid-cols-2 gap-3"><div><input type="number" min="0" max="50" step="0.1" value={inputs.defPct} onChange={(e) => handlePct(e.target.value)} placeholder="%" className="w-full px-3 py-2 border rounded-lg" /><p className="text-xs text-gray-500 mt-1">Percent (%)</p></div><div><input type="number" min="0" value={inputs.defFlat} onChange={(e) => handleFlat(e.target.value)} placeholder="Cal" className="w-full px-3 py-2 border rounded-lg" /><p className="text-xs text-gray-500 mt-1">Flat (cal)</p></div></div>{bmr && inputs.defFlat && <p className="text-sm mt-2"><span className="font-semibold">Goal:</span> {bmr - parseInt(inputs.defFlat)} cal</p>}</div>
+                  <div className="grid grid-cols-2 gap-4"><div><label className="block text-sm font-medium mb-1">Start Hour</label><input type="number" min="0" max="23" value={inputs.startHr} onChange={(e) => setInputs({...inputs, startHr: e.target.value})} className="w-full px-3 py-2 border rounded-lg" /></div><div><label className="block text-sm font-medium mb-1">End Hour</label><input type="number" min="0" max="23" value={inputs.endHr} onChange={(e) => setInputs({...inputs, endHr: e.target.value})} className="w-full px-3 py-2 border rounded-lg" /></div></div>
+                </div>
+                <button onClick={save} className="w-full bg-orange-500 hover:bg-orange-600 text-white font-semibold py-3 rounded-lg">Save Settings</button>
+              </div>
+            </div>
+          </div>
+        );
+      }
+
+      return (
+        <div className="min-h-screen bg-gradient-to-br from-amber-50 to-orange-100 p-6">
+          <div className="max-w-4xl mx-auto space-y-6">
+            <div className="bg-white rounded-2xl shadow-xl p-8">
+              <div className="flex justify-between items-center mb-6">
+                <div><h1 className="text-3xl font-bold">🥔 Potato Tracker</h1>{b && <p className="text-sm text-gray-500">Time: {b.hr}:00</p>}</div>
+                <div className="flex gap-2"><button onClick={() => setView('history')} className="px-4 py-2 bg-blue-100 hover:bg-blue-200 rounded-lg text-sm">📅 History</button><button onClick={() => setView('setup')} className="px-4 py-2 bg-gray-100 hover:bg-gray-200 rounded-lg text-sm">⚙️ Settings</button></div>
+              </div>
+              {st > 0 && <div className="bg-purple-50 border border-purple-200 rounded-lg p-4 mb-4"><p className="text-purple-800 font-semibold">🔥 {st} day streak!</p></div>}
+              {ws && <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6"><h3 className="font-semibold text-blue-900 mb-2 flex items-center gap-2"><TrendingUp />Last 7 Days</h3><div className="grid grid-cols-3 gap-4 text-sm"><div><p className="text-blue-700">Avg Consumed</p><p className="text-lg font-bold text-blue-900">{ws.avg}</p></div><div><p className="text-blue-700">Avg Remaining</p><p className="text-lg font-bold text-blue-900">{ws.avgRem}</p></div><div><p className="text-blue-700">Success</p><p className="text-lg font-bold text-blue-900">{ws.ok}/{ws.tot}</p></div></div></div>}
+              {b && b.msg ? <div className="bg-blue-50 border border-blue-200 rounded-lg p-6 text-center"><Clock /><p className="text-lg text-gray-700 mt-3">{b.msg}</p></div> : b && <><div className="mb-6"><div className="flex justify-between mb-2"><span className="text-sm font-medium">Progress</span><span className="text-sm font-medium">{b.cons} / {b.goal} cal</span></div><div className="w-full bg-gray-200 rounded-full h-4"><div className={`h-full rounded-full ${prog <= 100 ? 'bg-green-500' : 'bg-red-500'}`} style={{width: `${prog}%`}} /></div></div><div className="grid grid-cols-3 gap-4 mb-6"><div className="bg-green-50 border border-green-200 rounded-lg p-4"><p className="text-sm text-gray-600 mb-1">Budgeted</p><p className="text-3xl font-bold text-green-700">{b.bud}</p><p className="text-xs text-gray-500 mt-1">{b.perHr}/hr</p></div><div className="bg-orange-50 border border-orange-200 rounded-lg p-4"><p className="text-sm text-gray-600 mb-1">Consumed</p><p className="text-3xl font-bold text-orange-700">{b.cons}</p></div><div className={`border rounded-lg p-4 ${b.rem >= 0 ? 'bg-blue-50 border-blue-200' : 'bg-red-50 border-red-200'}`}><p className="text-sm text-gray-600 mb-1">Remaining</p><p className={`text-3xl font-bold ${b.rem >= 0 ? 'text-blue-700' : 'text-red-700'}`}>{b.rem}</p></div></div><div className="bg-amber-50 rounded-lg p-4"><p className="text-sm text-gray-600"><span className="font-semibold">Goal:</span> {settings.goal} cal<span className="mx-2">|</span><span className="font-semibold">Hours:</span> {settings.start}:00-{settings.end}:00</p></div></>}
+            </div>
+            <div className="bg-white rounded-2xl shadow-xl p-8">
+              <h2 className="text-2xl font-bold mb-4 flex items-center gap-2"><Utensils />Log Feed</h2>
+              <div className="mb-4"><p className="text-sm text-gray-600 mb-2">Quick Add:</p><div className="flex gap-2"><button onClick={() => quick(100)} className="px-4 py-2 bg-green-100 hover:bg-green-200 rounded-lg text-green-800 font-medium">+100</button><button onClick={() => quick(200)} className="px-4 py-2 bg-green-100 hover:bg-green-200 rounded-lg text-green-800 font-medium">+200</button><button onClick={() => quick(500)} className="px-4 py-2 bg-green-100 hover:bg-green-200 rounded-lg text-green-800 font-medium">+500</button></div></div>
+              <div className="grid grid-cols-4 gap-3 mb-6"><div><label className="block text-sm font-medium mb-1">Hour</label><input type="number" min="0" max="23" value={newFeed.hour} onChange={(e) => setNewFeed({...newFeed, hour: e.target.value})} placeholder="8" className="w-full px-3 py-2 border rounded-lg" /></div><div><label className="block text-sm font-medium mb-1">Calories</label><input type="number" min="0" value={newFeed.cal} onChange={(e) => setNewFeed({...newFeed, cal: e.target.value})} placeholder="450" className="w-full px-3 py-2 border rounded-lg" /></div><div><label className="block text-sm font-medium mb-1">Note</label><input type="text" value={newFeed.note} onChange={(e) => setNewFeed({...newFeed, note: e.target.value})} placeholder="snack" className="w-full px-3 py-2 border rounded-lg" /></div><div className="flex items-end"><button onClick={add} className="w-full px-6 py-2 bg-orange-500 hover:bg-orange-600 text-white font-semibold rounded-lg">Add</button></div></div>
+              <div className="space-y-2"><h3 className="text-lg font-semibold mb-3">Today's Feeds</h3>{!feeds.length ? <p className="text-gray-500 text-center py-8">No feeds yet</p> : feeds.map((f, i) => <div key={i} className="bg-gray-50 p-3 rounded-lg">{editIdx === i ? <div className="flex gap-2 items-center"><input type="number" min="0" max="23" value={editVals.hour} onChange={(e) => setEditVals({...editVals, hour: e.target.value})} className="w-20 px-2 py-1 border rounded" /><input type="number" min="0" value={editVals.cal} onChange={(e) => setEditVals({...editVals, cal: e.target.value})} className="w-24 px-2 py-1 border rounded" /><input type="text" value={editVals.note} onChange={(e) => setEditVals({...editVals, note: e.target.value})} className="flex-1 px-2 py-1 border rounded" /><button onClick={() => saveEdit(i)} className="text-green-600 font-medium">Save</button><button onClick={() => setEditIdx(null)} className="text-gray-600 font-medium">Cancel</button></div> : <div className="flex justify-between items-center"><div><span className="font-semibold">{f.hour}:00</span><span className="mx-2 text-gray-400">•</span><span>{f.cal} cal</span>{f.note && <span className="ml-2 text-gray-500 text-sm">({f.note})</span>}</div><div className="flex gap-2"><button onClick={() => startEdit(i)} className="text-blue-600 text-sm font-medium">Edit</button><button onClick={() => del(i)} className="text-red-600 text-sm font-medium">Delete</button></div></div>}</div>)}</div>
+            </div>
           </div>
         </div>
-      </div>
-    </div>
-  );
-}
+      );
+    }
+
+    const root = ReactDOM.createRoot(document.getElementById('root'));
+    root.render(<PotatoTracker />);
+  </script>
+</body>
+</html>
