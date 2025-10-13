@@ -411,6 +411,15 @@
       useEffect(() => { localStorage.setItem('pfoods', JSON.stringify(savedFoods)); }, [savedFoods]);
 
       useEffect(() => {
+        const interval = setInterval(() => {
+          // Force re-render every minute to update the hour and budget
+          setView(v => v);
+        }, 60000); // 60000ms = 1 minute
+        
+        return () => clearInterval(interval);
+      }, []);
+
+      useEffect(() => {
         if (view === 'setup' && settings && !inputs.weight) {
           const deficit = settings.bmr - settings.goal;
           const deficitPct = ((deficit / settings.bmr) * 100).toFixed(1);
