@@ -5,6 +5,11 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>🥔 Potato Tracker</title>
   <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      darkMode: 'class'
+    }
+  </script>
   <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
   <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
   <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
@@ -14,6 +19,25 @@
   
   <script type="text/babel">
     const { useState, useEffect } = React;
+    
+    // ADD DARK MODE HOOK HERE
+    const useDarkMode = () => {
+      const [isDark, setIsDark] = useState(() => {
+        const saved = localStorage.getItem('darkMode');
+        return saved ? JSON.parse(saved) : false;
+      });
+      
+      useEffect(() => {
+        localStorage.setItem('darkMode', JSON.stringify(isDark));
+        if (isDark) {
+          document.documentElement.classList.add('dark');
+        } else {
+          document.documentElement.classList.remove('dark');
+        }
+      }, [isDark]);
+      
+      return [isDark, setIsDark];
+    };
     
     const Calculator = () => <span>🧮</span>;
     const Clock = () => <span>⏰</span>;
@@ -171,6 +195,7 @@
 
     function PotatoTracker() {
       const [view, setView] = useState('main');
+      const [isDark, setIsDark] = useDarkMode();
       const [settings, setSettings] = useState(null);
       const [feeds, setFeeds] = useState([]);
       const [exercises, setExercises] = useState([]);
@@ -901,9 +926,12 @@
               <div className="flex justify-between items-center mb-6">
                 <div><h1 className="text-3xl font-bold">🥔 Potato Tracker</h1>{b && <p className="text-sm text-gray-500">Time: {b.hr}:00</p>}</div>
                 <div className="flex gap-2">
-                  <button onClick={() => setView('weights')} className="px-4 py-2 bg-purple-100 hover:bg-purple-200 rounded-lg text-sm">⚖️ Weight</button>
-                  <button onClick={() => setView('history')} className="px-4 py-2 bg-blue-100 hover:bg-blue-200 rounded-lg text-sm">📅 History</button>
-                  <button onClick={() => setView('setup')} className="px-4 py-2 bg-gray-100 hover:bg-gray-200 rounded-lg text-sm">⚙️ Settings</button>
+                  <button onClick={() => setIsDark(!isDark)} className="px-4 py-2 bg-gray-100 hover:bg-gray-200 dark:bg-gray-700 dark:hover:bg-gray-600 dark:text-white rounded-lg text-sm">
+                    {isDark ? '☀️' : '🌙'}
+                  </button>
+                  <button onClick={() => setView('weights')} className="px-4 py-2 bg-purple-100 hover:bg-purple-200 dark:bg-purple-900 dark:hover:bg-purple-800 dark:text-white rounded-lg text-sm">⚖️ Weight</button>
+                  <button onClick={() => setView('history')} className="px-4 py-2 bg-blue-100 hover:bg-blue-200 dark:bg-blue-900 dark:hover:bg-blue-800 dark:text-white rounded-lg text-sm">📅 History</button>
+                  <button onClick={() => setView('setup')} className="px-4 py-2 bg-gray-100 hover:bg-gray-200 dark:bg-gray-700 dark:hover:bg-gray-600 dark:text-white rounded-lg text-sm">⚙️ Settings</button>
                 </div>
               </div>
               {st > 0 && <div className="bg-purple-50 border border-purple-200 rounded-lg p-4 mb-4"><p className="text-purple-800 font-semibold">🔥 {st} day streak!</p></div>}
