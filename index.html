@@ -478,8 +478,8 @@
         localStorage.setItem('ps', JSON.stringify(ns));
         setView('main');
       };
-
-      const getBudget = () => {
+      
+    const getBudget = () => {
         if (!settings) return null;
         const hr = new Date().getHours();
         const { start, end, goal, bmr } = settings;
@@ -495,7 +495,7 @@
         while (h !== hr) { passed++; h = (h + 1) % 24; }
         passed++;
         const bud = passed * perHr;
-        return { bud, cons: netCons, rem: bud - netCons, perHr, hr, goal, exCal, grossCons: cons, adjustedGoal, bmr };
+        return { bud, cons: cons, rem: bud - cons, perHr, hr, goal, exCal, grossCons: cons, adjustedGoal, bmr };
       };
 
     const add = () => {
