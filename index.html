@@ -646,7 +646,7 @@
         if (!d.length) return null;
         return {
           avg: Math.round(d.reduce((a, [, v]) => a + v.tot - (v.exTotal || 0), 0) / d.length),
-          avgRem: Math.round(d.reduce((a, [, v]) => a + (v.goal - (v.tot - (v.exTotal || 0))), 0) / d.length),
+          avgRem: Math.round(d.reduce((a, [, v]) => a + ((v.bmr || settings.bmr) - (v.tot - (v.exTotal || 0))), 0) / d.length),
           ok: d.filter(([, v]) => v.ok).length,
           tot: d.length
         };
