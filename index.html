@@ -210,7 +210,7 @@
           ...newHistory[selectedDay],
           tot,
           exTotal,
-          ok: (netCals >= newHistory[selectedDay].goal && netCals <= (newHistory[selectedDay].bmr || settings.bmr))
+          ok: netCals <= (newHistory[selectedDay].bmr || settings.bmr)
         };
         setHistory(newHistory);
         localStorage.setItem('ph', JSON.stringify(newHistory));
@@ -389,7 +389,7 @@
           const os = JSON.parse(s);
           const nh = h ? JSON.parse(h) : {};
           const netCals = tot - exTotal;
-          nh[yest] = { tot, exTotal, goal: os.goal, bmr: os.bmr, ok: (netCals >= os.goal && netCals <= os.bmr) };
+          nh[yest] = { tot, exTotal, goal: os.goal, bmr: os.bmr, ok: netCals <= os.bmr };
           setHistory(nh);
           localStorage.setItem('ph', JSON.stringify(nh));
           setFeeds([]);
