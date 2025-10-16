@@ -411,12 +411,24 @@
       useEffect(() => { localStorage.setItem('pfoods', JSON.stringify(savedFoods)); }, [savedFoods]);
 
       useEffect(() => {
+        // Refresh every minute
         const interval = setInterval(() => {
-          // Force re-render every minute to update the hour and budget
           setView(v => v);
         }, 60000); // 60000ms = 1 minute
         
-        return () => clearInterval(interval);
+        // Refresh when page becomes visible again
+        const handleVisibilityChange = () => {
+          if (!document.hidden) {
+            setView(v => v);
+          }
+        };
+        
+        document.addEventListener('visibilitychange', handleVisibilityChange);
+        
+        return () => {
+          clearInterval(interval);
+          document.removeEventListener('visibilitychange', handleVisibilityChange);
+        };
       }, []);
 
       useEffect(() => {
