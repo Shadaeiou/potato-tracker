@@ -304,7 +304,7 @@
                     </div>
                     <p className="text-sm text-gray-600 dark:text-gray-400 mt-2">
                       {dayData.ok 
-                        ? `Net calories (${netCal}) were between your goal (${dayData.goal}) and BMR (${dayData.bmr || settings.bmr})! 🎉` 
+                        ? `Net calories (${netCal}) were under your BMR (${dayData.bmr || settings.bmr})! 🎉` 
                         : netCal < dayData.goal 
                           ? `Net calories (${netCal}) were below your goal (${dayData.goal}). You ate ${dayData.goal - netCal} calories too few.`
                           : `Net calories (${netCal}) exceeded your BMR (${dayData.bmr || settings.bmr}). You ate ${netCal - (dayData.bmr || settings.bmr)} calories too many.`}
