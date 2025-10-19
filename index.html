@@ -13,6 +13,7 @@
   <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
   <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
   <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+  <script src="https://accounts.google.com/gsi/client" async defer></script>
 </head>
 <body>
   <div id="root"></div>
@@ -351,6 +352,11 @@
       const [savedFoods, setSavedFoods] = useState([]);
       const [newFood, setNewFood] = useState({ name: '', calories: '', servingSize: '' });
       const [calcItems, setCalcItems] = useState([]);
+      
+      // ADD THESE GOOGLE AUTH STATES:
+      const [isGoogleReady, setIsGoogleReady] = useState(false);
+      const [googleUser, setGoogleUser] = useState(null);
+      const [accessToken, setAccessToken] = useState(null);
 
       // UPDATE THE AUTO-IMPORT USEEFFECT:
       useEffect(() => {
@@ -841,6 +847,193 @@
           console.error(error);
         }
       };
+      
+      // GOOGLE DRIVE SYNC FUNCTIONS
+      const CLIENT_ID = '875128652743-rmm519amdl1frs3rg3rkr73bni8t8ulp.apps.googleusercontent.com';
+      const SCOPES = 'https://www.googleapis.com/auth/drive.file';
+      const FILE_NAME = 'potato-tracker-data.json';
+
+      useEffect(() => {
+        // Initialize Google Sign-In
+        const initGoogleAuth = () => {
+          if (window.google) {
+            setIsGoogleReady(true);
+            
+            // Check if user is already signed in
+            const storedToken = localStorage.getItem('googleAccessToken');
+            if (storedToken) {
+              setAccessToken(storedToken);
+              loadFromDrive(storedToken);
+            }
+          }
+        };
+
+        if (window.google) {
+          initGoogleAuth();
+        } else {
+          window.addEventListener('load', initGoogleAuth);
+        }
+
+        return () => window.removeEventListener('load', initGoogleAuth);
+      }, []);
+
+      const handleGoogleSignIn = () => {
+        const client = window.google.accounts.oauth2.initTokenClient({
+          client_id: CLIENT_ID,
+          scope: SCOPES,
+          callback: (response) => {
+            if (response.access_token) {
+              setAccessToken(response.access_token);
+              localStorage.setItem('googleAccessToken', response.access_token);
+              saveToDrive(response.access_token);
+            }
+          },
+        });
+        client.requestAccessToken();
+      };
+
+      const handleGoogleSignOut = () => {
+        setAccessToken(null);
+        setGoogleUser(null);
+        localStorage.removeItem('googleAccessToken');
+        alert('✅ Signed out from Google Drive sync');
+      };
+
+      const saveToDrive = async (token) => {
+        const data = {
+          settings,
+          history,
+          weights,
+          savedFoods,
+          feeds,
+          exercises,
+          lastSync: new Date().toISOString()
+        };
+
+        try {
+          // First, try to find existing file
+          const searchResponse = await fetch(
+            `https://www.googleapis.com/drive/v3/files?q=name='${FILE_NAME}' and trashed=false`,
+            {
+              headers: { Authorization: `Bearer ${token}` }
+            }
+          );
+          const searchData = await searchResponse.json();
+
+          const metadata = {
+            name: FILE_NAME,
+            mimeType: 'application/json'
+          };
+
+          const file = new Blob([JSON.stringify(data)], { type: 'application/json' });
+          const form = new FormData();
+
+          if (searchData.files && searchData.files.length > 0) {
+            // Update existing file
+            const fileId = searchData.files[0].id;
+            form.append('metadata', new Blob([JSON.stringify(metadata)], { type: 'application/json' }));
+            form.append('file', file);
+
+            await fetch(`https://www.googleapis.com/upload/drive/v3/files/${fileId}?uploadType=multipart`, {
+              method: 'PATCH',
+              headers: { Authorization: `Bearer ${token}` },
+              body: form
+            });
+          } else {
+            // Create new file
+            form.append('metadata', new Blob([JSON.stringify(metadata)], { type: 'application/json' }));
+            form.append('file', file);
+
+            await fetch('https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart', {
+              method: 'POST',
+              headers: { Authorization: `Bearer ${token}` },
+              body: form
+            });
+          }
+
+          console.log('✅ Synced to Google Drive');
+        } catch (error) {
+          console.error('Failed to sync to Drive:', error);
+          alert('⚠️ Failed to sync to Google Drive. You may need to sign in again.');
+          setAccessToken(null);
+          localStorage.removeItem('googleAccessToken');
+        }
+      };
+
+      const loadFromDrive = async (token) => {
+        try {
+          // Find the file
+          const searchResponse = await fetch(
+            `https://www.googleapis.com/drive/v3/files?q=name='${FILE_NAME}' and trashed=false`,
+            {
+              headers: { Authorization: `Bearer ${token}` }
+            }
+          );
+          const searchData = await searchResponse.json();
+
+          if (searchData.files && searchData.files.length > 0) {
+            const fileId = searchData.files[0].id;
+
+            // Download file content
+            const contentResponse = await fetch(
+              `https://www.googleapis.com/drive/v3/files/${fileId}?alt=media`,
+              {
+                headers: { Authorization: `Bearer ${token}` }
+              }
+            );
+            const data = await contentResponse.json();
+
+            // Only load if the cloud data is newer
+            const cloudSync = new Date(data.lastSync || 0);
+            const localSync = new Date(localStorage.getItem('lastSync') || 0);
+
+            if (cloudSync > localSync) {
+              if (data.settings) {
+                setSettings(data.settings);
+                localStorage.setItem('ps', JSON.stringify(data.settings));
+              }
+              if (data.history) {
+                setHistory(data.history);
+                localStorage.setItem('ph', JSON.stringify(data.history));
+              }
+              if (data.weights) {
+                setWeights(data.weights);
+                localStorage.setItem('pw', JSON.stringify(data.weights));
+              }
+              if (data.savedFoods) {
+                setSavedFoods(data.savedFoods);
+                localStorage.setItem('pfoods', JSON.stringify(data.savedFoods));
+              }
+              if (data.feeds) {
+                setFeeds(data.feeds);
+                localStorage.setItem('pf', JSON.stringify(data.feeds));
+              }
+              if (data.exercises) {
+                setExercises(data.exercises);
+                localStorage.setItem('pex', JSON.stringify(data.exercises));
+              }
+              localStorage.setItem('lastSync', data.lastSync);
+              console.log('✅ Loaded data from Google Drive');
+            } else {
+              console.log('Local data is newer, keeping it');
+            }
+          }
+        } catch (error) {
+          console.error('Failed to load from Drive:', error);
+          // Don't show alert on load failure, just log it
+        }
+      };
+
+      // Auto-save to Drive when data changes (debounced)
+      useEffect(() => {
+        if (accessToken && settings) {
+          const timeout = setTimeout(() => {
+            saveToDrive(accessToken);
+            localStorage.setItem('lastSync', new Date().toISOString());
+          }, 2000); // Wait 2 seconds after last change
+          return () => clearTimeout(timeout);
+        }
+      }, [settings, history, weights, savedFoods, feeds, exercises, accessToken]);
 
       const b = getBudget();
       const st = getStreak();
@@ -1335,8 +1528,15 @@
                     <button onClick={() => { setIsDark(!isDark); setShowMenu(false); }} className="px-4 py-2 bg-gray-100 hover:bg-gray-200 dark:bg-gray-700 dark:hover:bg-gray-600 dark:text-white rounded-lg text-sm whitespace-nowrap">
                       {isDark ? '☀️ Light' : '🌙 Dark'}
                     </button>
-                    <button onClick={() => { handleExport(); setShowMenu(false); }} className="px-4 py-2 bg-green-100 hover:bg-green-200 dark:bg-green-900 dark:hover:bg-green-800 dark:text-white rounded-lg text-sm whitespace-nowrap">📤 Export</button>
-                    <button onClick={() => { handleImport(); setShowMenu(false); }} className="px-4 py-2 bg-indigo-100 hover:bg-indigo-200 dark:bg-indigo-900 dark:hover:bg-indigo-800 dark:text-white rounded-lg text-sm whitespace-nowrap">📥 Import</button>
+                    {accessToken ? (
+                      <button onClick={() => { handleGoogleSignOut(); setShowMenu(false); }} className="px-4 py-2 bg-red-100 hover:bg-red-200 dark:bg-red-900 dark:hover:bg-red-800 dark:text-white rounded-lg text-sm whitespace-nowrap">
+                        🔓 Sign Out
+                      </button>
+                    ) : (
+                      <button onClick={() => { handleGoogleSignIn(); setShowMenu(false); }} className="px-4 py-2 bg-green-100 hover:bg-green-200 dark:bg-green-900 dark:hover:bg-green-800 dark:text-white rounded-lg text-sm whitespace-nowrap">
+                        💾 Sync Drive
+                      </button>
+                    )}
                     <button onClick={() => { setView('weights'); setShowMenu(false); }} className="px-4 py-2 bg-purple-100 hover:bg-purple-200 dark:bg-purple-900 dark:hover:bg-purple-800 dark:text-white rounded-lg text-sm whitespace-nowrap">⚖️ Weight</button>
                     <button onClick={() => { setView('history'); setShowMenu(false); }} className="px-4 py-2 bg-blue-100 hover:bg-blue-200 dark:bg-blue-900 dark:hover:bg-blue-800 dark:text-white rounded-lg text-sm whitespace-nowrap">📅 History</button>
                     <button onClick={() => { setView('setup'); setShowMenu(false); }} className="px-4 py-2 bg-gray-100 hover:bg-gray-200 dark:bg-gray-700 dark:hover:bg-gray-600 dark:text-white rounded-lg text-sm whitespace-nowrap">⚙️ Settings</button>
