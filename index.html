@@ -352,15 +352,15 @@
       const [newFood, setNewFood] = useState({ name: '', calories: '', servingSize: '' });
       const [calcItems, setCalcItems] = useState([]);
 
-      // ADD THIS USEEFFECT FOR AUTO-IMPORT:
+      // UPDATE THE AUTO-IMPORT USEEFFECT:
       useEffect(() => {
         // Check if there's import data in URL hash
         const hash = window.location.hash;
         if (hash.startsWith('#import=')) {
           const base64 = hash.substring(8);
           try {
-            const data = JSON.parse(atob(base64));
-            if (confirm('Import data from URL?')) {
+            const data = JSON.parse(decodeURIComponent(escape(atob(base64))));
+            if (confirm('Import data from URL? This will overwrite your current data.')) {
               if (data.settings) {
                 setSettings(data.settings);
                 localStorage.setItem('ps', JSON.stringify(data.settings));
@@ -379,9 +379,13 @@
               }
               window.location.hash = '';
               window.location.reload();
+            } else {
+              window.location.hash = '';
             }
           } catch (e) {
             console.error('Failed to import from URL', e);
+            alert('❌ Invalid import URL');
+            window.location.hash = '';
           }
         }
       }, []);
@@ -740,7 +744,7 @@
         return days;
       };
 
-      // ADD THESE EXPORT/IMPORT FUNCTIONS HERE:
+      // REPLACE THE EXPORT/IMPORT FUNCTIONS WITH THESE:
       const handleExport = async () => {
         const data = {
           settings,
@@ -751,30 +755,42 @@
         };
         
         const jsonStr = JSON.stringify(data);
-        const base64 = btoa(jsonStr);
+        const base64 = btoa(unescape(encodeURIComponent(jsonStr)));
+        const fullUrl = window.location.origin + window.location.pathname + '#import=' + base64;
         
         try {
-          const response = await fetch(`https://tinyurl.com/api-create.php?url=${encodeURIComponent(window.location.origin + window.location.pathname + '#import=' + base64)}`);
+          // Use is.gd URL shortener (HTTPS supported, no API key needed)
+          const response = await fetch(`https://is.gd/create.php?format=simple&url=${encodeURIComponent(fullUrl)}`);
+          
+          if (!response.ok) throw new Error('Shortener failed');
+          
           const shortUrl = await response.text();
           
           // Copy to clipboard and show alert
-          navigator.clipboard.writeText(shortUrl);
+          await navigator.clipboard.writeText(shortUrl);
           alert(`✅ Short URL copied to clipboard!\n\n${shortUrl}\n\nShare this link to sync your data across devices.`);
         } catch (error) {
-          // Fallback: download JSON file
-          const blob = new Blob([jsonStr], { type: 'application/json' });
-          const url = URL.createObjectURL(blob);
-          const a = document.createElement('a');
-          a.href = url;
-          a.download = `potato-tracker-backup-${new Date().toISOString().split('T')[0]}.json`;
-          a.click();
-          URL.revokeObjectURL(url);
-          alert('⚠️ Could not create short URL. Downloaded backup file instead.');
+          console.error('URL shortener error:', error);
+          // Fallback: just copy the full URL
+          try {
+            await navigator.clipboard.writeText(fullUrl);
+            alert('⚠️ Could not create short URL.\n\nFull URL copied to clipboard instead.\n\n(It works but is very long)');
+          } catch {
+            // Final fallback: download JSON file
+            const blob = new Blob([jsonStr], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `potato-tracker-backup-${new Date().toISOString().split('T')[0]}.json`;
+            a.click();
+            URL.revokeObjectURL(url);
+            alert('⚠️ Could not create short URL or copy to clipboard.\n\nDownloaded backup file instead.');
+          }
         }
       };
 
       const handleImport = async () => {
-        const input = prompt('Paste your TinyURL or import data:');
+        const input = prompt('Paste your short URL or import data:');
         if (!input) return;
         
         try {
@@ -782,18 +798,22 @@
           
           // Check if it's a URL
           if (input.startsWith('http')) {
-            // Fetch the URL to get the full URL with hash
-            const response = await fetch(input);
-            const finalUrl = response.url;
-            const hash = finalUrl.split('#import=')[1];
-            if (!hash) throw new Error('Invalid import URL');
-            data = JSON.parse(atob(hash));
+            // Try to extract hash directly if it's our full URL
+            if (input.includes('#import=')) {
+              const hash = input.split('#import=')[1];
+              data = JSON.parse(decodeURIComponent(escape(atob(hash))));
+            } else {
+              // It's a short URL, we need to follow it
+              // For short URLs, user needs to open in browser then import will auto-trigger
+              alert('Please open that URL in your browser - it will automatically prompt to import the data.');
+              return;
+            }
           } else if (input.startsWith('{')) {
             // Direct JSON input
             data = JSON.parse(input);
           } else {
             // Assume it's base64
-            data = JSON.parse(atob(input));
+            data = JSON.parse(decodeURIComponent(escape(atob(input))));
           }
           
           // Import data
