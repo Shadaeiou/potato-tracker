@@ -352,6 +352,40 @@
       const [newFood, setNewFood] = useState({ name: '', calories: '', servingSize: '' });
       const [calcItems, setCalcItems] = useState([]);
 
+      // ADD THIS USEEFFECT FOR AUTO-IMPORT:
+      useEffect(() => {
+        // Check if there's import data in URL hash
+        const hash = window.location.hash;
+        if (hash.startsWith('#import=')) {
+          const base64 = hash.substring(8);
+          try {
+            const data = JSON.parse(atob(base64));
+            if (confirm('Import data from URL?')) {
+              if (data.settings) {
+                setSettings(data.settings);
+                localStorage.setItem('ps', JSON.stringify(data.settings));
+              }
+              if (data.history) {
+                setHistory(data.history);
+                localStorage.setItem('ph', JSON.stringify(data.history));
+              }
+              if (data.weights) {
+                setWeights(data.weights);
+                localStorage.setItem('pw', JSON.stringify(data.weights));
+              }
+              if (data.savedFoods) {
+                setSavedFoods(data.savedFoods);
+                localStorage.setItem('pfoods', JSON.stringify(data.savedFoods));
+              }
+              window.location.hash = '';
+              window.location.reload();
+            }
+          } catch (e) {
+            console.error('Failed to import from URL', e);
+          }
+        }
+      }, []);
+
       useEffect(() => {
         const s = localStorage.getItem('ps');
         const f = localStorage.getItem('pf');
@@ -704,6 +738,88 @@
         }
         
         return days;
+      };
+
+      // ADD THESE EXPORT/IMPORT FUNCTIONS HERE:
+      const handleExport = async () => {
+        const data = {
+          settings,
+          history,
+          weights,
+          savedFoods,
+          exportDate: new Date().toISOString()
+        };
+        
+        const jsonStr = JSON.stringify(data);
+        const base64 = btoa(jsonStr);
+        
+        try {
+          const response = await fetch(`https://tinyurl.com/api-create.php?url=${encodeURIComponent(window.location.origin + window.location.pathname + '#import=' + base64)}`);
+          const shortUrl = await response.text();
+          
+          // Copy to clipboard and show alert
+          navigator.clipboard.writeText(shortUrl);
+          alert(`✅ Short URL copied to clipboard!\n\n${shortUrl}\n\nShare this link to sync your data across devices.`);
+        } catch (error) {
+          // Fallback: download JSON file
+          const blob = new Blob([jsonStr], { type: 'application/json' });
+          const url = URL.createObjectURL(blob);
+          const a = document.createElement('a');
+          a.href = url;
+          a.download = `potato-tracker-backup-${new Date().toISOString().split('T')[0]}.json`;
+          a.click();
+          URL.revokeObjectURL(url);
+          alert('⚠️ Could not create short URL. Downloaded backup file instead.');
+        }
+      };
+
+      const handleImport = async () => {
+        const input = prompt('Paste your TinyURL or import data:');
+        if (!input) return;
+        
+        try {
+          let data;
+          
+          // Check if it's a URL
+          if (input.startsWith('http')) {
+            // Fetch the URL to get the full URL with hash
+            const response = await fetch(input);
+            const finalUrl = response.url;
+            const hash = finalUrl.split('#import=')[1];
+            if (!hash) throw new Error('Invalid import URL');
+            data = JSON.parse(atob(hash));
+          } else if (input.startsWith('{')) {
+            // Direct JSON input
+            data = JSON.parse(input);
+          } else {
+            // Assume it's base64
+            data = JSON.parse(atob(input));
+          }
+          
+          // Import data
+          if (data.settings) {
+            setSettings(data.settings);
+            localStorage.setItem('ps', JSON.stringify(data.settings));
+          }
+          if (data.history) {
+            setHistory(data.history);
+            localStorage.setItem('ph', JSON.stringify(data.history));
+          }
+          if (data.weights) {
+            setWeights(data.weights);
+            localStorage.setItem('pw', JSON.stringify(data.weights));
+          }
+          if (data.savedFoods) {
+            setSavedFoods(data.savedFoods);
+            localStorage.setItem('pfoods', JSON.stringify(data.savedFoods));
+          }
+          
+          alert('✅ Data imported successfully!');
+          window.location.reload();
+        } catch (error) {
+          alert('❌ Failed to import data. Make sure you pasted the correct URL or data.');
+          console.error(error);
+        }
       };
 
       const b = getBudget();
@@ -1199,6 +1315,8 @@
                     <button onClick={() => { setIsDark(!isDark); setShowMenu(false); }} className="px-4 py-2 bg-gray-100 hover:bg-gray-200 dark:bg-gray-700 dark:hover:bg-gray-600 dark:text-white rounded-lg text-sm whitespace-nowrap">
                       {isDark ? '☀️ Light' : '🌙 Dark'}
                     </button>
+                    <button onClick={() => { handleExport(); setShowMenu(false); }} className="px-4 py-2 bg-green-100 hover:bg-green-200 dark:bg-green-900 dark:hover:bg-green-800 dark:text-white rounded-lg text-sm whitespace-nowrap">📤 Export</button>
+                    <button onClick={() => { handleImport(); setShowMenu(false); }} className="px-4 py-2 bg-indigo-100 hover:bg-indigo-200 dark:bg-indigo-900 dark:hover:bg-indigo-800 dark:text-white rounded-lg text-sm whitespace-nowrap">📥 Import</button>
                     <button onClick={() => { setView('weights'); setShowMenu(false); }} className="px-4 py-2 bg-purple-100 hover:bg-purple-200 dark:bg-purple-900 dark:hover:bg-purple-800 dark:text-white rounded-lg text-sm whitespace-nowrap">⚖️ Weight</button>
                     <button onClick={() => { setView('history'); setShowMenu(false); }} className="px-4 py-2 bg-blue-100 hover:bg-blue-200 dark:bg-blue-900 dark:hover:bg-blue-800 dark:text-white rounded-lg text-sm whitespace-nowrap">📅 History</button>
                     <button onClick={() => { setView('setup'); setShowMenu(false); }} className="px-4 py-2 bg-gray-100 hover:bg-gray-200 dark:bg-gray-700 dark:hover:bg-gray-600 dark:text-white rounded-lg text-sm whitespace-nowrap">⚙️ Settings</button>
