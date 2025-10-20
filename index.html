@@ -458,7 +458,6 @@
         // Force refresh function
         const forceRefresh = () => {
           setView(v => v);
-          alert('refreshed');
         };
         
         // Refresh every minute
@@ -888,11 +887,38 @@
         return () => window.removeEventListener('load', initGoogleAuth);
       }, []);
 
+      // ADD THIS NEW USEEFFECT FOR AUTO-REFRESH:
+      useEffect(() => {
+        if (accessToken) {
+          const tokenExpiry = localStorage.getItem('googleTokenExpiry');
+          if (tokenExpiry) {
+            const expiryTime = parseInt(tokenExpiry);
+            const now = Date.now();
+            const timeUntilExpiry = expiryTime - now;
+            
+            // If token expires in less than 5 minutes, refresh it now
+            if (timeUntilExpiry < 5 * 60 * 1000 && timeUntilExpiry > 0) {
+              console.log('Token expiring soon, refreshing...');
+              handleGoogleSignIn();
+            } else if (timeUntilExpiry > 5 * 60 * 1000) {
+              // Set a timeout to refresh 5 minutes before expiry
+              const refreshTime = timeUntilExpiry - 5 * 60 * 1000;
+              const timeout = setTimeout(() => {
+                console.log('Auto-refreshing Google token...');
+                handleGoogleSignIn();
+              }, refreshTime);
+              
+              return () => clearTimeout(timeout);
+            }
+          }
+        }
+      }, [accessToken]);
+
       const handleGoogleSignIn = () => {
         const client = window.google.accounts.oauth2.initTokenClient({
           client_id: CLIENT_ID,
           scope: SCOPES,
-          callback: (response) => {
+          callback: async (response) => {
             if (response.access_token) {
               setAccessToken(response.access_token);
               localStorage.setItem('googleAccessToken', response.access_token);
@@ -901,7 +927,11 @@
               const expiryTime = Date.now() + (response.expires_in || 3600) * 1000;
               localStorage.setItem('googleTokenExpiry', expiryTime.toString());
               
-              saveToDrive(response.access_token);
+              // FIRST: Load from Drive (Google is source of truth)
+              await loadFromDrive(response.access_token);
+              
+              // THEN: Save current state to Drive (in case local has newer data)
+              // The loadFromDrive function now handles this intelligently
             }
           },
         });
@@ -1000,44 +1030,37 @@
             );
             const data = await contentResponse.json();
 
-            // Only load if the cloud data is newer
-            const cloudSync = new Date(data.lastSync || 0);
-            const localSync = new Date(localStorage.getItem('lastSync') || 0);
-
-            if (cloudSync > localSync) {
-              if (data.settings) {
-                setSettings(data.settings);
-                localStorage.setItem('ps', JSON.stringify(data.settings));
-              }
-              if (data.history) {
-                setHistory(data.history);
-                localStorage.setItem('ph', JSON.stringify(data.history));
-              }
-              if (data.weights) {
-                setWeights(data.weights);
-                localStorage.setItem('pw', JSON.stringify(data.weights));
-              }
-              if (data.savedFoods) {
-                setSavedFoods(data.savedFoods);
-                localStorage.setItem('pfoods', JSON.stringify(data.savedFoods));
-              }
-              if (data.feeds) {
-                setFeeds(data.feeds);
-                localStorage.setItem('pf', JSON.stringify(data.feeds));
-              }
-              if (data.exercises) {
-                setExercises(data.exercises);
-                localStorage.setItem('pex', JSON.stringify(data.exercises));
-              }
-              localStorage.setItem('lastSync', data.lastSync);
-              console.log('✅ Loaded data from Google Drive');
-            } else {
-              console.log('Local data is newer, keeping it');
+            // ALWAYS load from Google Drive (it's the source of truth)
+            if (data.settings) {
+              setSettings(data.settings);
+              localStorage.setItem('ps', JSON.stringify(data.settings));
             }
+            if (data.history) {
+              setHistory(data.history);
+              localStorage.setItem('ph', JSON.stringify(data.history));
+            }
+            if (data.weights) {
+              setWeights(data.weights);
+              localStorage.setItem('pw', JSON.stringify(data.weights));
+            }
+            if (data.savedFoods) {
+              setSavedFoods(data.savedFoods);
+              localStorage.setItem('pfoods', JSON.stringify(data.savedFoods));
+            }
+            // Don't load feeds/exercises from Drive - those are current day only
+            
+            localStorage.setItem('lastSync', data.lastSync || new Date().toISOString());
+            console.log('✅ Loaded data from Google Drive (source of truth)');
+            alert('✅ Synced from Google Drive!');
+            
+          } else {
+            // No file exists yet, save current local data to create it
+            console.log('No Drive file found, creating initial backup...');
+            await saveToDrive(token);
           }
         } catch (error) {
           console.error('Failed to load from Drive:', error);
-          // Don't show alert on load failure, just log it
+          alert('⚠️ Failed to load from Google Drive. Check console for details.');
         }
       };
 
