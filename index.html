@@ -1235,18 +1235,16 @@
           
           // Generate all weeks that contain data
           allDates.forEach(dateStr => {
-            const date = new Date(dateStr);
-            // Get Monday of that week
-            const dayOfWeek = date.getDay();
-            const diff = dayOfWeek === 0 ? -6 : 1 - dayOfWeek;
+            const date = new Date(dateStr + 'T00:00:00');
+            // Get Monday of that week (weeks run Monday-Sunday)
+            const dayOfWeek = date.getDay(); // 0=Sun, 1=Mon, 2=Tue, etc.
+            const diff = dayOfWeek === 0 ? -6 : 1 - dayOfWeek; // If Sunday, go back 6 days; otherwise go back to Monday
             const monday = new Date(date);
-            monday.setDate(diff);
-            monday.setHours(0, 0, 0, 0);
+            monday.setDate(monday.getDate() + diff);
             const weekKey = monday.toISOString().split('T')[0];
             
             if (!weeks[weekKey]) {
               weeks[weekKey] = {
-                days: [],
                 dates: [],
                 totalFood: 0,
                 totalExercise: 0,
@@ -1269,28 +1267,17 @@
             weeks[weekKey].totalBMR += (dayData.bmr || settings?.bmr || 0);
             if (dayData.ok) weeks[weekKey].successDays++;
             
-            // Check for weight entries
-            if (weights[dateStr]) {
-              if (!weeks[weekKey].actualWeightStart) {
-                weeks[weekKey].actualWeightStart = weights[dateStr];
-              }
-              weeks[weekKey].actualWeightEnd = weights[dateStr];
-            }
-          });
-          
-          // Now populate the actual days array for each week (all 7 days)
-          Object.keys(weeks).forEach(weekKey => {
-            const weekStart = new Date(weekKey);
-            const daysInWeek = [];
+            // Check for weight entries at start and end of week
+            const sortedDates = weeks[weekKey].dates.sort();
+            const firstDate = sortedDates[0];
+            const lastDate = sortedDates[sortedDates.length - 1];
             
-            for (let i = 0; i < 7; i++) {
-              const day = new Date(weekStart);
-              day.setDate(day.getDate() + i);
-              const dayStr = day.toISOString().split('T')[0];
-              daysInWeek.push(dayStr);
+            if (weights[firstDate]) {
+              weeks[weekKey].actualWeightStart = weights[firstDate];
             }
-            
-            weeks[weekKey].days = daysInWeek;
+            if (weights[lastDate]) {
+              weeks[weekKey].actualWeightEnd = weights[lastDate];
+            }
           });
           
           return Object.entries(weeks).sort(([a], [b]) => b.localeCompare(a));
