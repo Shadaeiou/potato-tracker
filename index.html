@@ -1272,11 +1272,18 @@
             const firstDate = sortedDates[0];
             const lastDate = sortedDates[sortedDates.length - 1];
             
+            // Check for weight at the beginning of the week (Monday of this week)
             if (weights[firstDate]) {
               weeks[weekKey].actualWeightStart = weights[firstDate];
             }
-            if (weights[lastDate]) {
-              weeks[weekKey].actualWeightEnd = weights[lastDate];
+            
+            // Check for weight on the Monday AFTER this week ends (which represents the end weight)
+            const monday = new Date(weekKey);
+            const nextMonday = new Date(monday);
+            nextMonday.setDate(nextMonday.getDate() + 7);
+            const nextMondayStr = nextMonday.toISOString().split('T')[0];
+            if (weights[nextMondayStr]) {
+              weeks[weekKey].actualWeightEnd = weights[nextMondayStr];
             }
           });
           
