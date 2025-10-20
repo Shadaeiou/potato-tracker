@@ -1238,7 +1238,7 @@
             const date = new Date(dateStr);
             // Get Monday of that week
             const dayOfWeek = date.getDay();
-            const diff = date.getDate() - dayOfWeek + (dayOfWeek === 0 ? -6 : 1);
+            const diff = dayOfWeek === 0 ? -6 : 1 - dayOfWeek;
             const monday = new Date(date);
             monday.setDate(diff);
             monday.setHours(0, 0, 0, 0);
