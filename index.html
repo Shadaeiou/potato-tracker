@@ -467,11 +467,11 @@
         };
         
         // Multiple events to catch page becoming active
-        window.addEventListener('focus', forceRefresh);
+        //window.addEventListener('focus', forceRefresh);
         
         return () => {
           clearInterval(interval);
-          window.addEventListener('focus', forceRefresh);
+          //window.addEventListener('focus', forceRefresh);
         };
       }, []);
 
