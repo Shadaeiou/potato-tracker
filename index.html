@@ -467,11 +467,11 @@
         };
         
         // Multiple events to catch page becoming active
-        document.addEventListener('visibilitychange', forceRefresh);
+        window.addEventListener('pageshow', forceRefresh);
         
         return () => {
           clearInterval(interval);
-          document.removeEventListener('visibilitychange', forceRefresh);
+          window.addEventListener('pageshow', forceRefresh);
         };
       }, []);
 
