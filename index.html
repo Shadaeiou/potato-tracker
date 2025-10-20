@@ -454,17 +454,17 @@
       useEffect(() => { localStorage.setItem('pex', JSON.stringify(exercises)); }, [exercises]);
       useEffect(() => { localStorage.setItem('pfoods', JSON.stringify(savedFoods)); }, [savedFoods]);
 
-      useEffect(() => {
-        // Refresh every minute
-        const interval = setInterval(() => {
-          setView(v => v);
-        }, 60000); // 60000ms = 1 minute
-        
+      useEffect(() => {        
         // Force refresh function
         const forceRefresh = () => {
           setView(v => v);
           alert('refreshed');
         };
+        
+        // Refresh every minute
+        const interval = setInterval(() => {
+          forceRefresh();
+        }, 60000); // 60000ms = 1 minute
 
         const handleVisibilityChange = () => {
           if (document.visibilityState === 'visible') {
@@ -477,7 +477,7 @@
         
         return () => {
           clearInterval(interval);
-          document.addEventListener('visibilitychange', handleVisibilityChange);
+          document.removeEventListener('visibilitychange', handleVisibilityChange);
         };
       }, []);
 
