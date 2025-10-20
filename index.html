@@ -63,7 +63,7 @@
           
           const mostRecentDate = sortedWeights[0][0];
           if (date === mostRecentDate) {
-            const newBmr = calcBMR(editWeightVal, settings.heightFt, settings.heightIn, settings.age, settings.gender, settings.activity);
+            const newBmr = calcBMR(editWeightVal, settings.heightFt, settings.heightIn, settings.age, settings.gender);
             const deficit = settings.bmr - settings.goal;
             const updatedSettings = {
               ...settings,
@@ -338,7 +338,7 @@
       const [weightInput, setWeightInput] = useState('');
       const [selectedDay, setSelectedDay] = useState(null);
       const [inputs, setInputs] = useState({
-        weight: '', heightFt: '', heightIn: '', age: '', gender: 'male', activity: '1.2',
+        weight: '', heightFt: '', heightIn: '', age: '', gender: 'male',
         defPct: '18', defFlat: '', startHr: '4', endHr: '22'
       });
       const [newFeed, setNewFeed] = useState({ hour: '', cal: '', note: '' });
@@ -489,7 +489,6 @@
             heightIn: settings.heightIn?.toString() || '',
             age: settings.age?.toString() || '',
             gender: settings.gender || 'male',
-            activity: settings.activity?.toString() || '1.2',
             startHr: settings.start.toString(),
             endHr: settings.end.toString(),
             defPct: deficitPct,
@@ -498,28 +497,28 @@
         }
       }, [view, settings]);
 
-      const calcBMR = (weight, heightFt, heightIn, age, gender, activity) => {
+      const calcBMR = (weight, heightFt, heightIn, age, gender) => {
         const kg = parseFloat(weight) * 0.453592;
         const cm = ((parseFloat(heightFt) * 12) + parseFloat(heightIn || 0)) * 2.54;
         const bmr = gender === 'male' ? 10 * kg + 6.25 * cm - 5 * parseFloat(age) + 5 : 10 * kg + 6.25 * cm - 5 * parseFloat(age) - 161;
-        return Math.round(bmr * parseFloat(activity));
+        return Math.round(bmr);
       };
 
       const handlePct = (v) => {
         if (!inputs.weight || !inputs.heightFt || !inputs.age) { setInputs({...inputs, defPct: v, defFlat: ''}); return; }
-        const bmr = calcBMR(inputs.weight, inputs.heightFt, inputs.heightIn, inputs.age, inputs.gender, inputs.activity);
+        const bmr = calcBMR(inputs.weight, inputs.heightFt, inputs.heightIn, inputs.age, inputs.gender);
         setInputs({...inputs, defPct: v, defFlat: Math.round(bmr * parseFloat(v) / 100).toString()});
       };
 
       const handleFlat = (v) => {
         if (!inputs.weight || !inputs.heightFt || !inputs.age) { setInputs({...inputs, defFlat: v, defPct: ''}); return; }
-        const bmr = calcBMR(inputs.weight, inputs.heightFt, inputs.heightIn, inputs.age, inputs.gender, inputs.activity);
+        const bmr = calcBMR(inputs.weight, inputs.heightFt, inputs.heightIn, inputs.age, inputs.gender);
         setInputs({...inputs, defFlat: v, defPct: ((parseFloat(v) / bmr) * 100).toFixed(1)});
       };
 
       const save = () => {
         if (!inputs.weight || !inputs.heightFt || !inputs.age) return;
-        const bmr = calcBMR(inputs.weight, inputs.heightFt, inputs.heightIn, inputs.age, inputs.gender, inputs.activity);
+        const bmr = calcBMR(inputs.weight, inputs.heightFt, inputs.heightIn, inputs.age, inputs.gender);
         const def = inputs.defFlat ? parseFloat(inputs.defFlat) : Math.round(bmr * parseFloat(inputs.defPct) / 100);
         const ns = { 
           bmr, 
@@ -531,7 +530,6 @@
           heightIn: parseFloat(inputs.heightIn || 0),
           age: parseFloat(inputs.age),
           gender: inputs.gender,
-          activity: parseFloat(inputs.activity)
         };
         setSettings(ns);
         localStorage.setItem('ps', JSON.stringify(ns));
@@ -580,7 +578,7 @@
           setWeights(newWeights);
           localStorage.setItem('pw', JSON.stringify(newWeights));
           
-          const newBmr = calcBMR(weightInput, settings.heightFt, settings.heightIn, settings.age, settings.gender, settings.activity);
+          const newBmr = calcBMR(weightInput, settings.heightFt, settings.heightIn, settings.age, settings.gender);
           const deficit = settings.bmr - settings.goal;
           const updatedSettings = {
             ...settings,
@@ -1485,7 +1483,7 @@
 
       if (view === 'setup' || !settings) {
         const canCalc = inputs.weight && inputs.heightFt && inputs.age;
-        const bmr = canCalc ? calcBMR(inputs.weight, inputs.heightFt, inputs.heightIn, inputs.age, inputs.gender, inputs.activity) : null;
+        const bmr = canCalc ? calcBMR(inputs.weight, inputs.heightFt, inputs.heightIn, inputs.age, inputs.gender) : null;
         return (
           <div className="min-h-screen bg-gradient-to-br from-amber-50 to-orange-100 dark:from-gray-900 dark:to-gray-800 p-6">
             <div className="max-w-2xl mx-auto bg-white dark:bg-gray-800 rounded-2xl shadow-xl p-8">
@@ -1502,7 +1500,6 @@
                     <div><label className="block text-sm font-medium mb-1 dark:text-gray-300">Age</label><input type="number" value={inputs.age} onChange={(e) => setInputs({...inputs, age: e.target.value})} onBlur={() => inputs.defPct && canCalc && handlePct(inputs.defPct)} className="w-full px-3 py-2 border dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg" /></div>
                     <div><label className="block text-sm font-medium mb-1 dark:text-gray-300">Gender</label><select value={inputs.gender} onChange={(e) => setInputs({...inputs, gender: e.target.value})} className="w-full px-3 py-2 border dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg"><option value="male">Male</option><option value="female">Female</option></select></div>
                   </div>
-                  <div><label className="block text-sm font-medium mb-1 dark:text-gray-300">Activity Level</label><select value={inputs.activity} onChange={(e) => setInputs({...inputs, activity: e.target.value})} className="w-full px-3 py-2 border dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg"><option value="1.2">Sedentary</option><option value="1.375">Lightly active</option><option value="1.55">Moderately active</option><option value="1.725">Very active</option><option value="1.9">Extremely active</option></select></div>
                   {bmr && <div className="bg-white dark:bg-gray-700 p-3 rounded border dark:border-gray-600"><p className="text-sm dark:text-gray-300"><span className="font-semibold">BMR:</span> {bmr} cal/day</p></div>}
                 </div>
                 <div className="space-y-4">
