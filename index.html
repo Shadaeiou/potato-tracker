@@ -465,13 +465,19 @@
           setView(v => v);
           alert('refreshed');
         };
+
+        const handleVisibilityChange = () => {
+          if (document.visibilityState === 'visible') {
+            forceRefresh();
+          }
+        };
         
         // Multiple events to catch page becoming active
-        window.addEventListener('visibilitychange', forceRefresh);
+        document.addEventListener('visibilitychange', handleVisibilityChange);
         
         return () => {
           clearInterval(interval);
-          window.addEventListener('visibilitychange', forceRefresh);
+          document.addEventListener('visibilitychange', handleVisibilityChange);
         };
       }, []);
 
