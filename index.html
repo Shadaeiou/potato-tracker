@@ -857,11 +857,21 @@
           if (window.google) {
             setIsGoogleReady(true);
             
-            // Check if user is already signed in
+            // Check if user was previously signed in
             const storedToken = localStorage.getItem('googleAccessToken');
-            if (storedToken) {
-              setAccessToken(storedToken);
-              loadFromDrive(storedToken);
+            const tokenExpiry = localStorage.getItem('googleTokenExpiry');
+            
+            if (storedToken && tokenExpiry) {
+              const now = Date.now();
+              if (now < parseInt(tokenExpiry)) {
+                // Token is still valid
+                setAccessToken(storedToken);
+                loadFromDrive(storedToken);
+              } else {
+                // Token expired, clear it
+                localStorage.removeItem('googleAccessToken');
+                localStorage.removeItem('googleTokenExpiry');
+              }
             }
           }
         };
@@ -883,6 +893,11 @@
             if (response.access_token) {
               setAccessToken(response.access_token);
               localStorage.setItem('googleAccessToken', response.access_token);
+              
+              // Store expiry time (tokens last about 1 hour)
+              const expiryTime = Date.now() + (response.expires_in || 3600) * 1000;
+              localStorage.setItem('googleTokenExpiry', expiryTime.toString());
+              
               saveToDrive(response.access_token);
             }
           },
@@ -894,6 +909,7 @@
         setAccessToken(null);
         setGoogleUser(null);
         localStorage.removeItem('googleAccessToken');
+        localStorage.removeItem('googleTokenExpiry');
         alert('✅ Signed out from Google Drive sync');
       };
 
