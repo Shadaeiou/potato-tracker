@@ -463,19 +463,14 @@
         // Force refresh function
         const forceRefresh = () => {
           setView(v => v);
-          alert('refreshed');
         };
         
         // Multiple events to catch page becoming active
         document.addEventListener('visibilitychange', forceRefresh);
-        window.addEventListener('focus', forceRefresh);
-        window.addEventListener('pageshow', forceRefresh);
         
         return () => {
           clearInterval(interval);
           document.removeEventListener('visibilitychange', forceRefresh);
-          window.removeEventListener('focus', forceRefresh);
-          window.removeEventListener('pageshow', forceRefresh);
         };
       }, []);
 
