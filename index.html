@@ -1228,25 +1228,32 @@
         // Calculate weekly stats
         const getWeeklyStats = () => {
           const weeks = {};
-          const sortedDates = Object.keys(history).sort();
           
-          sortedDates.forEach(dateStr => {
+          // Get all dates and find the range
+          const allDates = Object.keys(history).sort();
+          if (allDates.length === 0) return [];
+          
+          // Generate all weeks that contain data
+          allDates.forEach(dateStr => {
             const date = new Date(dateStr);
             // Get Monday of that week
             const dayOfWeek = date.getDay();
             const diff = date.getDate() - dayOfWeek + (dayOfWeek === 0 ? -6 : 1);
-            const monday = new Date(date.setDate(diff));
+            const monday = new Date(date);
+            monday.setDate(diff);
+            monday.setHours(0, 0, 0, 0);
             const weekKey = monday.toISOString().split('T')[0];
             
             if (!weeks[weekKey]) {
               weeks[weekKey] = {
                 days: [],
+                dates: [],
                 totalFood: 0,
                 totalExercise: 0,
                 totalNet: 0,
                 totalBMR: 0,
                 successDays: 0,
-                weekStart: monday,
+                weekStart: new Date(monday),
                 actualWeightStart: null,
                 actualWeightEnd: null
               };
@@ -1255,7 +1262,7 @@
             const dayData = history[dateStr];
             const netCal = dayData.tot - (dayData.exTotal || 0);
             
-            weeks[weekKey].days.push(dateStr);
+            weeks[weekKey].dates.push(dateStr);
             weeks[weekKey].totalFood += dayData.tot;
             weeks[weekKey].totalExercise += (dayData.exTotal || 0);
             weeks[weekKey].totalNet += netCal;
@@ -1269,6 +1276,21 @@
               }
               weeks[weekKey].actualWeightEnd = weights[dateStr];
             }
+          });
+          
+          // Now populate the actual days array for each week (all 7 days)
+          Object.keys(weeks).forEach(weekKey => {
+            const weekStart = new Date(weekKey);
+            const daysInWeek = [];
+            
+            for (let i = 0; i < 7; i++) {
+              const day = new Date(weekStart);
+              day.setDate(day.getDate() + i);
+              const dayStr = day.toISOString().split('T')[0];
+              daysInWeek.push(dayStr);
+            }
+            
+            weeks[weekKey].days = daysInWeek;
           });
           
           return Object.entries(weeks).sort(([a], [b]) => b.localeCompare(a));
@@ -1396,7 +1418,7 @@
                             </div>
                             <div className="text-right">
                               <p className="text-sm text-gray-600 dark:text-gray-400">Success Rate</p>
-                              <p className="text-2xl font-bold text-green-600 dark:text-green-400">{stats.successDays}/{stats.days.length}</p>
+                              <p className="text-2xl font-bold text-green-600 dark:text-green-400">{stats.successDays}/{stats.dates.length}</p>
                             </div>
                           </div>
                           
