@@ -1295,7 +1295,6 @@
             }
             
             // Check for weight on the Monday AFTER this week ends (which represents the end weight)
-            const monday = new Date(weekKey);
             const nextMonday = new Date(monday);
             nextMonday.setDate(nextMonday.getDate() + 7);
             const nextMondayStr = nextMonday.toISOString().split('T')[0];
