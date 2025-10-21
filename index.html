@@ -887,38 +887,11 @@
         return () => window.removeEventListener('load', initGoogleAuth);
       }, []);
 
-      // ADD THIS NEW USEEFFECT FOR AUTO-REFRESH:
-      useEffect(() => {
-        if (accessToken) {
-          const tokenExpiry = localStorage.getItem('googleTokenExpiry');
-          if (tokenExpiry) {
-            const expiryTime = parseInt(tokenExpiry);
-            const now = Date.now();
-            const timeUntilExpiry = expiryTime - now;
-            
-            // If token expires in less than 5 minutes, refresh it now
-            if (timeUntilExpiry < 5 * 60 * 1000 && timeUntilExpiry > 0) {
-              console.log('Token expiring soon, refreshing...');
-              handleGoogleSignIn();
-            } else if (timeUntilExpiry > 5 * 60 * 1000) {
-              // Set a timeout to refresh 5 minutes before expiry
-              const refreshTime = timeUntilExpiry - 5 * 60 * 1000;
-              const timeout = setTimeout(() => {
-                console.log('Auto-refreshing Google token...');
-                handleGoogleSignIn();
-              }, refreshTime);
-              
-              return () => clearTimeout(timeout);
-            }
-          }
-        }
-      }, [accessToken]);
-
       const handleGoogleSignIn = () => {
         const client = window.google.accounts.oauth2.initTokenClient({
           client_id: CLIENT_ID,
           scope: SCOPES,
-          callback: async (response) => {
+          callback: (response) => {
             if (response.access_token) {
               setAccessToken(response.access_token);
               localStorage.setItem('googleAccessToken', response.access_token);
@@ -927,11 +900,7 @@
               const expiryTime = Date.now() + (response.expires_in || 3600) * 1000;
               localStorage.setItem('googleTokenExpiry', expiryTime.toString());
               
-              // FIRST: Load from Drive (Google is source of truth)
-              await loadFromDrive(response.access_token);
-              
-              // THEN: Save current state to Drive (in case local has newer data)
-              // The loadFromDrive function now handles this intelligently
+              alert('✅ Signed in! Use Upload/Download buttons to sync your data.');
             }
           },
         });
@@ -944,6 +913,30 @@
         localStorage.removeItem('googleAccessToken');
         localStorage.removeItem('googleTokenExpiry');
         alert('✅ Signed out from Google Drive sync');
+      };
+
+      const handleUploadToDrive = async () => {
+        if (!accessToken) {
+          alert('Please sign in first');
+          return;
+        }
+        
+        if (confirm('Upload your current data to Google Drive? This will overwrite what\'s stored in Drive.')) {
+          await saveToDrive(accessToken);
+          alert('✅ Uploaded to Google Drive!');
+        }
+      };
+
+      const handleDownloadFromDrive = async () => {
+        if (!accessToken) {
+          alert('Please sign in first');
+          return;
+        }
+        
+        if (confirm('Download data from Google Drive? This will overwrite your current local data.')) {
+          await loadFromDrive(accessToken);
+          window.location.reload();
+        }
       };
 
       const saveToDrive = async (token) => {
@@ -1030,7 +1023,7 @@
             );
             const data = await contentResponse.json();
 
-            // ALWAYS load from Google Drive (it's the source of truth)
+            // Load all data from Drive
             if (data.settings) {
               setSettings(data.settings);
               localStorage.setItem('ps', JSON.stringify(data.settings));
@@ -1047,32 +1040,28 @@
               setSavedFoods(data.savedFoods);
               localStorage.setItem('pfoods', JSON.stringify(data.savedFoods));
             }
-            // Don't load feeds/exercises from Drive - those are current day only
+            if (data.feeds) {
+              setFeeds(data.feeds);
+              localStorage.setItem('pf', JSON.stringify(data.feeds));
+            }
+            if (data.exercises) {
+              setExercises(data.exercises);
+              localStorage.setItem('pex', JSON.stringify(data.exercises));
+            }
             
-            localStorage.setItem('lastSync', data.lastSync || new Date().toISOString());
-            console.log('✅ Loaded data from Google Drive (source of truth)');
+            const today = new Date().toDateString();
+            localStorage.setItem('pd', today);
+            localStorage.setItem('lastSync', new Date().toISOString());
             
+            console.log('✅ Downloaded from Google Drive');
           } else {
-            // No file exists yet, save current local data to create it
-            console.log('No Drive file found, creating initial backup...');
-            await saveToDrive(token);
+            alert('No backup found in Google Drive. Use Upload to create one.');
           }
         } catch (error) {
           console.error('Failed to load from Drive:', error);
-          alert('⚠️ Failed to load from Google Drive. Check console for details.');
+          alert('⚠️ Failed to download from Google Drive.');
         }
       };
-
-      // Auto-save to Drive when data changes (debounced)
-      useEffect(() => {
-        if (accessToken && settings) {
-          const timeout = setTimeout(() => {
-            saveToDrive(accessToken);
-            localStorage.setItem('lastSync', new Date().toISOString());
-          }, 2000); // Wait 2 seconds after last change
-          return () => clearTimeout(timeout);
-        }
-      }, [settings, history, weights, savedFoods, feeds, exercises, accessToken]);
 
       const b = getBudget();
       const st = getStreak();
@@ -1582,19 +1571,26 @@
                       {isDark ? '☀️ Light' : '🌙 Dark'}
                     </button>
                     {accessToken ? (
-                      <button onClick={() => { handleGoogleSignOut(); setShowMenu(false); }} className="px-4 py-2 bg-red-100 hover:bg-red-200 dark:bg-red-900 dark:hover:bg-red-800 dark:text-white rounded-lg text-sm whitespace-nowrap">
-                        🔓 Sign Out
-                      </button>
+                      <>
+                        <button onClick={() => { handleUploadToDrive(); setShowMenu(false); }} className="px-4 py-2 bg-green-100 hover:bg-green-200 dark:bg-green-900 dark:hover:bg-green-800 dark:text-white rounded-lg text-sm whitespace-nowrap">
+                          ⬆️ Upload
+                        </button>
+                        <button onClick={() => { handleDownloadFromDrive(); setShowMenu(false); }} className="px-4 py-2 bg-blue-100 hover:bg-blue-200 dark:bg-blue-900 dark:hover:bg-blue-800 dark:text-white rounded-lg text-sm whitespace-nowrap">
+                          ⬇️ Download
+                        </button>
+                        <button onClick={() => { handleGoogleSignOut(); setShowMenu(false); }} className="px-4 py-2 bg-red-100 hover:bg-red-200 dark:bg-red-900 dark:hover:bg-red-800 dark:text-white rounded-lg text-sm whitespace-nowrap">
+                          🔓 Sign Out
+                        </button>
+                      </>
                     ) : (
                       <button onClick={() => { handleGoogleSignIn(); setShowMenu(false); }} className="px-4 py-2 bg-green-100 hover:bg-green-200 dark:bg-green-900 dark:hover:bg-green-800 dark:text-white rounded-lg text-sm whitespace-nowrap">
-                        💾 Sync Drive
+                        💾 Sign In
                       </button>
                     )}
                     <button onClick={() => { setView('weights'); setShowMenu(false); }} className="px-4 py-2 bg-purple-100 hover:bg-purple-200 dark:bg-purple-900 dark:hover:bg-purple-800 dark:text-white rounded-lg text-sm whitespace-nowrap">⚖️ Weight</button>
                     <button onClick={() => { setView('history'); setShowMenu(false); }} className="px-4 py-2 bg-blue-100 hover:bg-blue-200 dark:bg-blue-900 dark:hover:bg-blue-800 dark:text-white rounded-lg text-sm whitespace-nowrap">📅 History</button>
                     <button onClick={() => { setView('setup'); setShowMenu(false); }} className="px-4 py-2 bg-gray-100 hover:bg-gray-200 dark:bg-gray-700 dark:hover:bg-gray-600 dark:text-white rounded-lg text-sm whitespace-nowrap">⚙️ Settings</button>
                   </div>
-                </div>
               </div>
               {st > 0 && <div className="bg-purple-50 dark:bg-purple-900/30 border border-purple-200 dark:border-purple-800 rounded-lg p-4 mb-4"><p className="text-purple-800 dark:text-purple-300 font-semibold">🔥 {st} day streak!</p></div>}
               {ws && <div className="bg-blue-50 dark:bg-blue-900/30 border border-blue-200 dark:border-blue-800 rounded-lg p-4 mb-6"><h3 className="font-semibold text-blue-900 dark:text-blue-300 mb-2 flex items-center gap-2"><TrendingUp />Last 7 Days</h3><div className="grid grid-cols-3 gap-4 text-sm"><div><p className="text-blue-700 dark:text-blue-400">Avg Net Cal</p><p className="text-lg font-bold text-blue-900 dark:text-blue-300">{ws.avg}</p></div><div><p className="text-blue-700 dark:text-blue-400">Avg Left</p><p className="text-lg font-bold text-blue-900 dark:text-blue-300">{ws.avgRem}</p></div><div><p className="text-blue-700 dark:text-blue-400">Success</p><p className="text-lg font-bold text-blue-900 dark:text-blue-300">{ws.ok}/{ws.tot}</p></div></div></div>}
