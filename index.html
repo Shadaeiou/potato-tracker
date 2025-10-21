@@ -1571,17 +1571,15 @@
                       {isDark ? '☀️ Light' : '🌙 Dark'}
                     </button>
                     {accessToken ? (
-                      <>
-                        <button onClick={() => { handleUploadToDrive(); setShowMenu(false); }} className="px-4 py-2 bg-green-100 hover:bg-green-200 dark:bg-green-900 dark:hover:bg-green-800 dark:text-white rounded-lg text-sm whitespace-nowrap">
-                          ⬆️ Upload
-                        </button>
-                        <button onClick={() => { handleDownloadFromDrive(); setShowMenu(false); }} className="px-4 py-2 bg-blue-100 hover:bg-blue-200 dark:bg-blue-900 dark:hover:bg-blue-800 dark:text-white rounded-lg text-sm whitespace-nowrap">
-                          ⬇️ Download
-                        </button>
-                        <button onClick={() => { handleGoogleSignOut(); setShowMenu(false); }} className="px-4 py-2 bg-red-100 hover:bg-red-200 dark:bg-red-900 dark:hover:bg-red-800 dark:text-white rounded-lg text-sm whitespace-nowrap">
-                          🔓 Sign Out
-                        </button>
-                      </>
+                      <button onClick={() => { handleUploadToDrive(); setShowMenu(false); }} className="px-4 py-2 bg-green-100 hover:bg-green-200 dark:bg-green-900 dark:hover:bg-green-800 dark:text-white rounded-lg text-sm whitespace-nowrap">
+                        ⬆️ Upload
+                      </button>
+                      <button onClick={() => { handleDownloadFromDrive(); setShowMenu(false); }} className="px-4 py-2 bg-blue-100 hover:bg-blue-200 dark:bg-blue-900 dark:hover:bg-blue-800 dark:text-white rounded-lg text-sm whitespace-nowrap">
+                        ⬇️ Download
+                      </button>
+                      <button onClick={() => { handleGoogleSignOut(); setShowMenu(false); }} className="px-4 py-2 bg-red-100 hover:bg-red-200 dark:bg-red-900 dark:hover:bg-red-800 dark:text-white rounded-lg text-sm whitespace-nowrap">
+                        🔓 Sign Out
+                      </button>
                     ) : (
                       <button onClick={() => { handleGoogleSignIn(); setShowMenu(false); }} className="px-4 py-2 bg-green-100 hover:bg-green-200 dark:bg-green-900 dark:hover:bg-green-800 dark:text-white rounded-lg text-sm whitespace-nowrap">
                         💾 Sign In
